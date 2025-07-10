@@ -10,4 +10,3 @@ model = smp.Unet(
     in_channels=3,
     classes=1,
 )
-model.to(device)
