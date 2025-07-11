@@ -5,30 +5,24 @@ import numpy as np
 
 
 class RiverDataset(Dataset):
-    def __init__(self, img_dir, mask_dir, transform=None):
-        # Our directories for images and masks
-        self.img_dir = img_dir
-        self.mask_dir = mask_dir
+    def __init__(self, img_paths, mask_paths, transform=None):
+        # Our file paths for images and masks
+        self.img_paths = img_paths
+        self.mask_paths = mask_paths
         self.transform = transform
-        # list all files that are in the folder 
-        self.img_names = os.listdir(img_dir)
-        self.mask_names = os.listdir(mask_dir) 
+        
+        # Ensure we have matching number of images and masks
+        assert len(img_paths) == len(mask_paths), f"Mismatch: {len(img_paths)} images, {len(mask_paths)} masks" 
         
         
     def __len__(self):
         # Return the number of images in the dataset
-        return len(self.img_names)
+        return len(self.img_paths)
     
     def __getitem__(self, idx):
-        # Get the image and mask file names
-        img_name = self.img_names[idx]
-        mask_name = self.mask_names[idx]
-        
-        # Load the image and mask
-        # In this case the image and mask have the same name and extension
-        # but are in different directories
-        img_path = os.path.join(self.img_dir, img_name)
-        mask_path = os.path.join(self.mask_dir, mask_name)
+        # Get the image and mask file paths
+        img_path = self.img_paths[idx]
+        mask_path = self.mask_paths[idx]
         
         # Open the image and mask files
         # RGB because we want to work with color images in River segmentation 

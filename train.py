@@ -3,15 +3,9 @@ from albumentations.pytorch import ToTensorV2
 import torch 
 from tqdm import tqdm
 from model import model, device
-from utils import save_checkpoint, load_checkpoint, check_accuracy , get_loaders,   save_predictions_as_imgs
+from utils import save_checkpoint, load_checkpoint, check_accuracy, get_loaders, get_test_loader, save_predictions_as_imgs, split_dataset
 import os
-
-# Function to read a text file and return a list of full paths
-def read_txt_to_list(txt_path, dataset_root):
-    with open(txt_path, 'r') as f:
-        folders = [line.strip() for line in f.readlines() if line.strip()]
-    full_paths = [os.path.join(dataset_root, folder) for folder in folders]
-    return full_paths
+import kagglehub
 
 # Hyperparameters
 LEARNING_RATE = 1e-4
@@ -31,18 +25,23 @@ PIN_MEMORY = True
 #        (e.g., to continue training from where you left off or to evaluate a pretrained model)
 
 #        False: Start training from scratch (randomly initialized weights).
-LOAD_MODEL = True
+LOAD_MODEL = False
 
 path = kagglehub.dataset_download("gvclsu/water-segmentation-dataset")
 
 print("Path to dataset files:", path)
-DATASET_ROOT_IMAGE = os.path.join(path,"water_v2", "water_v2", "JPEGImages")
-DATASET_ROOT_MASK = os.path.join(path,"water_v2", "water_v2", "Annotations")
-TRAIN_TXT_FILE = os.path.join(path,"water_v2", "water_v2", "train.txt")
-VAL_TXT_FILE = os.path.join(path,"water_v2", "water_v2", "val.txt")
+DATASET_ROOT_IMAGE = os.path.join(path,"water_v2", "water_v2", "JPEGImages" , "ADE20K")
+DATASET_ROOT_MASK = os.path.join(path,"water_v2", "water_v2", "Annotations", "ADE20K")
 
-TRAIN_FOLDERS = read_txt_to_list(TRAIN_TXT_FILE, DATASET_ROOT_IMAGE)
-VAL_FOLDERS = read_txt_to_list(VAL_TXT_FILE, DATASET_ROOT_MASK)
+# Split dataset into train (70%), validation (16%), and test (14%)
+train_images, train_masks, val_images, val_masks, test_images, test_masks = split_dataset(
+    image_dir=DATASET_ROOT_IMAGE,
+    mask_dir=DATASET_ROOT_MASK,
+    train_ratio=0.7,
+    val_ratio=0.16,
+    test_ratio=0.14,
+    random_seed=42
+)
 
 
 """
@@ -61,7 +60,7 @@ def train(loader , model , optimizer , loss , scaler) :
         #The unsqueeze(1) adds the channel dimension: [N, H, W] → [N, 1, H, W]
         targets = targets.unsqueeze(1).to(device=DEVICE)
 
-        with torch.cuda.amp.autocast():
+        with torch.amp.autocast('cuda'):
             # Forward pass
             predictions = model(data)
             # Calculate loss
@@ -131,9 +130,11 @@ ToTensor: NumPy arrays → PyTorch tensors, HWC → CHW
     #optimizer 
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
     
-    train_loader , val_loader = get_loaders(
-        train_folders=TRAIN_FOLDERS,
-        val_folders=VAL_FOLDERS,
+    train_loader, val_loader = get_loaders(
+        train_images=train_images,
+        train_masks=train_masks,
+        val_images=val_images,
+        val_masks=val_masks,
         train_transform=train_transform,
         val_transform=val_transform,
         batch_size=BATCH_SIZE,
@@ -141,7 +142,15 @@ ToTensor: NumPy arrays → PyTorch tensors, HWC → CHW
         pin_memory=PIN_MEMORY
     )
     
-    scaler = torch.cuda.amp.GradScaler()  # For mixed precision training
+    scaler = torch.amp.GradScaler()  # For mixed precision training
+    
+    # Track best model performance
+    best_dice_score = 0.0
+    
+    # Load checkpoint if specified
+    if LOAD_MODEL and os.path.exists("my_checkpoint.pth.tar"):
+        load_checkpoint("my_checkpoint.pth.tar", model, optimizer)
+        print("Loaded old checkpoint format")
     
     for epoch in range(NUM_EPOCHS):
         print(f"Epoch {epoch + 1}/{NUM_EPOCHS}")
@@ -149,13 +158,52 @@ ToTensor: NumPy arrays → PyTorch tensors, HWC → CHW
         # Train the model
         train(train_loader, model, optimizer, loss, scaler)
        
-         
-        # Check accuracy on validation set
-        check_accuracy(val_loader, model, device=DEVICE)
+        # Check accuracy on validation set and get dice score
+        current_dice = check_accuracy(val_loader, model, device=DEVICE)
         
-        # Save model checkpoint
-        if LOAD_MODEL:
-            save_checkpoint(model, optimizer, filename="my_checkpoint.pth.tar")
+        # Save checkpoint every epoch (for resuming training)
+        save_checkpoint(model, optimizer, filename="latest_checkpoint.pth.tar")
+        
+        # Save best model if current performance is better
+        if current_dice > best_dice_score:
+            best_dice_score = current_dice
+            save_checkpoint(model, optimizer, filename="best_model.pth.tar")
+            print(f"New best model saved! Dice score: {best_dice_score:.4f}")
+
+        #Great question! There are several reasons why save_predictions_as_imgs is not typically included in the training loop:
+        # If we added this here:
+        # save_predictions_as_imgs(val_loader, model, folder=f"epoch_{epoch}/")
+        # This would save images 10 times (once per epoch)
+        # Each save takes time and disk space
+    # Final evaluation on test set
+    print("\n" + "="*50)
+    print("FINAL EVALUATION ON TEST SET")
+    print("="*50)
+    
+    # Load best model for final evaluation
+    if os.path.exists("best_model.pth.tar"):
+        load_checkpoint("best_model.pth.tar", model, optimizer)
+        print("Loaded best model for final evaluation")
+    else:
+        print("No best model found, using current model")
+    
+    # Create test loader
+    test_loader = get_test_loader(
+        test_images=test_images,
+        test_masks=test_masks,
+        test_transform=val_transform,  # Use same transform as validation
+        batch_size=BATCH_SIZE,
+        num_workers=NUM_WORKERS,
+        pin_memory=PIN_MEMORY
+    )
+    
+    # Test the model
+    check_accuracy(test_loader, model, device=DEVICE)
+    
+    # Save some test predictions
+    save_predictions_as_imgs(
+        test_loader, model, folder="test_predictions/", device=DEVICE
+    )
     
 if __name__ == "__main__": 
     main() 
