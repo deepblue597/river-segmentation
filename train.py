@@ -7,18 +7,14 @@ from utils import save_checkpoint, load_checkpoint, check_accuracy, get_loaders,
 import os
 import kagglehub
 
-# Hyperparameters
-LEARNING_RATE = 1e-4
+# Hyperparameters - Optimized for Water Segmentation
+LEARNING_RATE = 3e-4  # Increased from 1e-5
 DEVICE = device 
-BATCH_SIZE = 32
-NUM_EPOCHS = 10
-# num_workers=2 → load data with 2 parallel workers (adjust for your CPU)
-NUM_WORKERS = 8 
-# we can change that depending onr our GPU memory
-IMAGE_HEIGHT = 512
-IMAGE_WIDTH = 512
-# pin_memory=True → speeds GPU data transfer
-# When set to True, the DataLoader will copy Tensors into pinned (page-locked) memory before transferring them to the GPU.
+BATCH_SIZE = 16       # Reduced from 32 for better gradients
+NUM_EPOCHS = 100      # Increased from 50
+NUM_WORKERS = 4       # Reduced for stability
+IMAGE_HEIGHT = 384    # Reduced from 512 for faster training
+IMAGE_WIDTH = 384     # Still good resolution for water segmentation
 PIN_MEMORY = True
 
 #         True: Load a previously saved model checkpoint before training or evaluation.
@@ -99,12 +95,20 @@ ToTensor: NumPy arrays → PyTorch tensors, HWC → CHW
     train_transform = A.Compose(
         [
             A.Resize(height=IMAGE_HEIGHT, width=IMAGE_WIDTH),
-            A.Rotate(limit=35, p=1),
+            A.Rotate(limit=20, p=0.7),  # Less aggressive rotation
             A.HorizontalFlip(p=0.5),
             A.VerticalFlip(p=0.1),
+            # Water-specific augmentations
+            A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.5),
+            A.HueSaturationValue(hue_shift_limit=10, sat_shift_limit=15, val_shift_limit=10, p=0.5),
+            A.RandomGamma(gamma_limit=(80, 120), p=0.3),
+            A.OneOf([
+                A.Blur(blur_limit=3, p=0.5),
+                A.GaussianBlur(blur_limit=3, p=0.5),
+            ], p=0.2),
             A.Normalize(
-                mean=(0, 0, 0), 
-                std=(1, 1, 1), 
+                mean=(0.485, 0.456, 0.406),  # ImageNet mean
+                std=(0.229, 0.224, 0.225),   # ImageNet std
                 max_pixel_value=255.0
             ),
             ToTensorV2(),
@@ -115,8 +119,8 @@ ToTensor: NumPy arrays → PyTorch tensors, HWC → CHW
         [
             A.Resize(height=IMAGE_HEIGHT, width=IMAGE_WIDTH),
             A.Normalize(
-                mean=(0, 0, 0), 
-                std=(1, 1, 1), 
+                mean=(0.485, 0.456, 0.406),  # ImageNet mean
+                std=(0.229, 0.224, 0.225),   # ImageNet std
                 max_pixel_value=255.0
             ),
             ToTensorV2(),
@@ -127,8 +131,13 @@ ToTensor: NumPy arrays → PyTorch tensors, HWC → CHW
     # loss function 
     loss = torch.nn.BCEWithLogitsLoss()
 
-    #optimizer 
-    optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
+    #optimizer - AdamW with weight decay for better generalization
+    optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-4)
+    
+    # Learning rate scheduler - reduces LR when validation loss plateaus
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode='max', factor=0.5, patience=10
+    )
     
     train_loader, val_loader = get_loaders(
         train_images=train_images,
@@ -160,6 +169,9 @@ ToTensor: NumPy arrays → PyTorch tensors, HWC → CHW
        
         # Check accuracy on validation set and get dice score
         current_dice = check_accuracy(val_loader, model, device=DEVICE)
+        
+        # Update learning rate based on validation performance
+        scheduler.step(current_dice)
         
         # Save checkpoint every epoch (for resuming training)
         save_checkpoint(model, optimizer, filename="latest_checkpoint.pth.tar")
