@@ -136,7 +136,7 @@ ToTensor: NumPy arrays → PyTorch tensors, HWC → CHW
     
     # Learning rate scheduler - reduces LR when validation loss plateaus
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode='max', factor=0.5, patience=10
+        optimizer, mode='max', factor=0.5, patience=10, verbose=False
     )
     
     train_loader, val_loader = get_loaders(
@@ -172,6 +172,10 @@ ToTensor: NumPy arrays → PyTorch tensors, HWC → CHW
         
         # Update learning rate based on validation performance
         scheduler.step(current_dice)
+        
+        # Print current learning rate
+        current_lr = scheduler.optimizer.param_groups[0]['lr']
+        print(f"Current learning rate: {current_lr:.2e}")
         
         # Save checkpoint every epoch (for resuming training)
         save_checkpoint(model, optimizer, filename="latest_checkpoint.pth.tar")

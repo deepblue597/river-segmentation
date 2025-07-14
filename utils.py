@@ -1,6 +1,8 @@
 import os
 import torch
 import torchvision
+import cv2
+import numpy as np
 from dataset import RiverDataset
 from torch.utils.data import DataLoader
 import random
@@ -71,7 +73,7 @@ def check_accuracy(loader, model, device="cuda"):
 def save_predictions_as_imgs(
     loader, model, folder="saved_images/", device="cuda"
 ):
-    """Save predictions as images"""
+    """Save predictions as composite overlay images"""
     model.eval()
     # Create folder if it doesn't exist
     if not os.path.exists(folder):
@@ -79,6 +81,8 @@ def save_predictions_as_imgs(
         
     for idx, (x, y) in enumerate(loader):
         x = x.to(device=device)
+        y = y.to(device=device)
+        
         # With gradients (training):
         # - Stores intermediate activations for backpropagation
         # - Memory usage: ~2x higher
@@ -86,20 +90,52 @@ def save_predictions_as_imgs(
             preds = torch.sigmoid(model(x))
             preds = (preds > 0.5).float()
         
-        # Save original input image
-        torchvision.utils.save_image(
-            x, f"{folder}/input_{idx}.png"
-        )
-        
-        # Save prediction mask
-        torchvision.utils.save_image(
-            preds, f"{folder}/pred_{idx}.png"
-        )
-        
-        # Save target mask  
-        torchvision.utils.save_image(y.unsqueeze(1), f"{folder}/target_{idx}.png")
+        # Process each image in the batch
+        batch_size = x.shape[0]
+        for batch_idx in range(batch_size):
+            # Convert tensors to numpy arrays
+            # Denormalize the input image (reverse ImageNet normalization)
+            img = x[batch_idx].cpu().numpy()
+            mean = np.array([0.485, 0.456, 0.406]).reshape(3, 1, 1)
+            std = np.array([0.229, 0.224, 0.225]).reshape(3, 1, 1)
+            img = img * std + mean
+            img = np.clip(img, 0, 1)
+            
+            # Convert from CHW to HWC and scale to 0-255
+            img = np.transpose(img, (1, 2, 0))
+            img = (img * 255).astype(np.uint8)
+            
+            # Get prediction and true mask
+            pred_mask = preds[batch_idx].cpu().numpy().squeeze()
+            true_mask = y[batch_idx].cpu().numpy().squeeze()
+            
+            # Create composite image with overlays
+            composite = img.copy()
+            overlay = np.zeros_like(img)
+            
+            # Blue overlay for predictions
+            overlay[pred_mask == 1] = [0, 0, 255]  # Blue for predicted water
+            
+            # Red overlay for true mask
+            overlay[true_mask == 1] = [255, 0, 0]  # Red for true water
+            
+            # Green overlay where both prediction and true mask overlap
+            overlap_mask = (pred_mask == 1) & (true_mask == 1)
+            overlay[overlap_mask] = [0, 255, 0]  # Green for correct predictions
+            
+            # Blend original image with overlays
+            alpha = 0.4
+            composite = cv2.addWeighted(composite, 1-alpha, overlay, alpha, 0)
+            
+            # Save composite image (convert RGB to BGR for OpenCV)
+            composite_bgr = cv2.cvtColor(composite, cv2.COLOR_RGB2BGR)
+            cv2.imwrite(f"{folder}/composite_{idx}_{batch_idx}.png", composite_bgr)
 
     model.train()
+    print(f"Composite images saved to {folder}/ with:")
+    print("  - Blue: Predicted water regions")
+    print("  - Red: True water regions")
+    print("  - Green: Correctly predicted water regions")
 
 
 def split_dataset(image_dir, mask_dir, train_ratio=0.7, val_ratio=0.16, test_ratio=0.14, random_seed=42):
