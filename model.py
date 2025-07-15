@@ -4,8 +4,14 @@ import torch
 # --- Step 6: Model, loss, optimizer ---
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+# Different EfficientNet options - uncomment to try different models
+# model = smp.UnetPlusPlus(encoder_name="efficientnet-b0", encoder_weights="imagenet", in_channels=3, classes=1)  # Fastest
+# model = smp.UnetPlusPlus(encoder_name="efficientnet-b1", encoder_weights="imagenet", in_channels=3, classes=1)  # Balanced
+# model = smp.UnetPlusPlus(encoder_name="efficientnet-b3", encoder_weights="imagenet", in_channels=3, classes=1)  # Higher accuracy
+# model = smp.UnetPlusPlus(encoder_name="efficientnet-b4", encoder_weights="imagenet", in_channels=3, classes=1)  # Best accuracy (if you have GPU memory)
+
 model = smp.UnetPlusPlus(
-    encoder_name="efficientnet-b1",  # Better for water segmentation
+    encoder_name="efficientnet-b4",  # Upgraded from b1 - better accuracy with your GPU memory
     encoder_weights="imagenet",
     in_channels=3,
     classes=1,
