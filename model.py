@@ -9,6 +9,8 @@ model = smp.UnetPlusPlus(
     encoder_weights="imagenet",
     in_channels=3,
     classes=1,
+    # Note: This UNet++ doesn't have built-in deep supervision
+    # Deep supervision would require manual implementation
 )
 
 model1 = smp.Unet(
