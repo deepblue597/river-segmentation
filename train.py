@@ -10,7 +10,7 @@ import kagglehub
 # Hyperparameters - Optimized for Water Segmentation
 LEARNING_RATE = 3e-4  # Good for larger batch sizes
 DEVICE = device 
-BATCH_SIZE = 64       # Increased from 16 - utilize your 40GB GPU!
+BATCH_SIZE = 32       # Increased from 16 - utilize your 40GB GPU!
 NUM_EPOCHS = 100      # Increased from 50
 NUM_WORKERS = 8       # Increased from 4 to utilize CPU cores better
 IMAGE_HEIGHT = 512    # Increased from 384 for better detail capture

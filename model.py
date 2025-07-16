@@ -11,7 +11,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # model = smp.UnetPlusPlus(encoder_name="efficientnet-b4", encoder_weights="imagenet", in_channels=3, classes=1)  # Best accuracy (if you have GPU memory)
 
 model = smp.UnetPlusPlus(
-    encoder_name="efficientnet-b4",  # Upgraded from b1 - better accuracy with your GPU memory
+    encoder_name="efficientnet-b3",  # Optimal for 40GB GPU - good balance of accuracy and memory
     encoder_weights="imagenet",
     in_channels=3,
     classes=1,
