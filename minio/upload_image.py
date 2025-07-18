@@ -3,8 +3,8 @@ from botocore.client import Config
 
 s3 = boto3.resource('s3',
                     endpoint_url='http://linux-pc:9000',
-                    aws_access_key_id='minioadmin',
-                    aws_secret_access_key='minioadmin',
+                    aws_access_key_id='minio',
+                    aws_secret_access_key='minio123',
                     config=Config(signature_version='s3v4'),
                     region_name='us-east-1')  #
 
@@ -33,6 +33,6 @@ def upload_image(file_path, bucket_name, object_name=None):
 if __name__ == "__main__":
     # Replace with your image file path and bucket name
     file_path = 'composite_0_13.png'
-    bucket_name = 'river-seg'
+    bucket_name = 'river'
     
     upload_image(file_path, bucket_name)
