@@ -1,0 +1,186 @@
+name: river-segmentation-pipeline
+services:
+  timescaledb:
+    container_name: timescaledb
+    image: timescale/timescaledb-ha:pg17
+
+    environment:
+      - PGDATA=/pgdata
+      - POSTGRES_PASSWORD=password
+
+    volumes:
+      - ./data/timescaledb:/pgdata
+
+    ports:
+      - "5432:5432"
+
+    restart: unless-stopped
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana-enterprise
+
+    volumes:
+      - ./data/grafana:/var/lib/grafana
+
+    ports:
+      - "3001:3000"
+
+    restart: unless-stopped
+
+  minio:
+    container_name: minio
+    image: quay.io/minio/minio
+
+    environment:
+      - MINIO_ROOT_USER=minio
+      - MINIO_ROOT_PASSWORD=minio123
+
+    command: server /data --console-address ":9001"
+
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+    volumes:
+      - ./data/minio:/data
+
+    restart: unless-stopped
+
+  controller-riverseg-1:
+    image: apache/kafka:latest
+    container_name: controller-riverseg-1
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: controller
+      KAFKA_LISTENERS: CONTROLLER://:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@controller-riverseg-1:9093,2@controller-riverseg-2:9093,3@controller-riverseg-3:9093
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+
+  controller-riverseg-2:
+    image: apache/kafka:latest
+    container_name: controller-riverseg-2
+    environment:
+      KAFKA_NODE_ID: 2
+      KAFKA_PROCESS_ROLES: controller
+      KAFKA_LISTENERS: CONTROLLER://:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@controller-riverseg-1:9093,2@controller-riverseg-2:9093,3@controller-riverseg-3:9093
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+
+  controller-riverseg-3:
+    image: apache/kafka:latest
+    container_name: controller-riverseg-3
+    environment:
+      KAFKA_NODE_ID: 3
+      KAFKA_PROCESS_ROLES: controller
+      KAFKA_LISTENERS: CONTROLLER://:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@controller-riverseg-1:9093,2@controller-riverseg-2:9093,3@controller-riverseg-3:9093
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+
+  broker-riverseg-1:
+    image: apache/kafka:latest
+    container_name: broker-riverseg-1
+    user: "0:0" # Run as root to avoid permission issues
+    ports:
+      - 29092:9092
+      - 29093:9093
+    environment:
+      KAFKA_NODE_ID: 4
+      KAFKA_PROCESS_ROLES: broker
+      KAFKA_LISTENERS: "PLAINTEXT://:19092,PLAINTEXT_HOST://:9092,SASL_PLAINTEXT://:9093"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://broker-riverseg-1:19092,PLAINTEXT_HOST://192.168.1.196:29092,SASL_PLAINTEXT://192.168.1.196:29093"
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,SASL_PLAINTEXT:SASL_PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@controller-riverseg-1:9093,2@controller-riverseg-2:9093,3@controller-riverseg-3:9093
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      # SASL Configuration
+      KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
+      KAFKA_LISTENER_NAME_SASL_PLAINTEXT_SASL_ENABLED_MECHANISMS: PLAIN
+      KAFKA_OPTS: "-Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf"
+    depends_on:
+      - controller-riverseg-1
+      - controller-riverseg-2
+      - controller-riverseg-3
+    volumes:
+      - ./data/kafka/broker1:/var/lib/kafka/data
+      - ./config/kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf:ro
+
+  broker-riverseg-2:
+    image: apache/kafka:latest
+    container_name: broker-riverseg-2
+    user: "0:0" # Run as root to avoid permission issues
+    ports:
+      - 39092:9092
+      - 39093:9093
+    environment:
+      KAFKA_NODE_ID: 5
+      KAFKA_PROCESS_ROLES: broker
+      KAFKA_LISTENERS: "PLAINTEXT://:19092,PLAINTEXT_HOST://:9092,SASL_PLAINTEXT://:9093"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://broker-riverseg-2:19092,PLAINTEXT_HOST://192.168.1.196:39092,SASL_PLAINTEXT://192.168.1.196:39093"
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,SASL_PLAINTEXT:SASL_PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@controller-riverseg-1:9093,2@controller-riverseg-2:9093,3@controller-riverseg-3:9093
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      # SASL Configuration
+      KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
+      KAFKA_LISTENER_NAME_SASL_PLAINTEXT_SASL_ENABLED_MECHANISMS: PLAIN
+      KAFKA_OPTS: "-Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf"
+    depends_on:
+      - controller-riverseg-1
+      - controller-riverseg-2
+      - controller-riverseg-3
+    volumes:
+      - ./data/kafka/broker2:/var/lib/kafka/data
+      - ./config/kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf:ro
+
+  broker-riverseg-3:
+    image: apache/kafka:latest
+    container_name: broker-riverseg-3
+    user: "0:0" # Run as root to avoid permission issues
+    ports:
+      - 49092:9092
+      - 49093:9093
+    environment:
+      KAFKA_NODE_ID: 6
+      KAFKA_PROCESS_ROLES: broker
+      KAFKA_LISTENERS: "PLAINTEXT://:19092,PLAINTEXT_HOST://:9092,SASL_PLAINTEXT://:9093"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://broker-riverseg-3:19092,PLAINTEXT_HOST://192.168.1.196:49092,SASL_PLAINTEXT://192.168.1.196:49093"
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,SASL_PLAINTEXT:SASL_PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@controller-riverseg-1:9093,2@controller-riverseg-2:9093,3@controller-riverseg-3:9093
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      # SASL Configuration
+      KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
+      KAFKA_LISTENER_NAME_SASL_PLAINTEXT_SASL_ENABLED_MECHANISMS: PLAIN
+      KAFKA_OPTS: "-Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf"
+    depends_on:
+      - controller-riverseg-1
+      - controller-riverseg-2
+      - controller-riverseg-3
+    volumes:
+      - ./data/kafka/broker3:/var/lib/kafka/data
+      - ./config/kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf:ro
+
+  kafka-ui-multi:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui-multi
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local-cluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: broker-riverseg-1:19092,broker-riverseg-2:19092,broker-riverseg-3:19092 # Use correct broker ports
+      DYNAMIC_CONFIG_ENABLED: "true" # Enable dynamic config
+    ports:
+      - "8080:8080" # Expose Kafka UI on port 8080
+
+#TODO: Add network naming
