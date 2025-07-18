@@ -8,14 +8,18 @@ import os
 import kagglehub
 
 # Hyperparameters - Optimized for Water Segmentation
-LEARNING_RATE = 3e-4  # Increased from 1e-5
+LEARNING_RATE = 3e-4  # Good for larger batch sizes
 DEVICE = device 
-BATCH_SIZE = 16       # Reduced from 32 for better gradients
+BATCH_SIZE = 32       # Increased from 16 - utilize your 40GB GPU!
 NUM_EPOCHS = 100      # Increased from 50
-NUM_WORKERS = 4       # Reduced for stability
-IMAGE_HEIGHT = 384    # Reduced from 512 for faster training
-IMAGE_WIDTH = 384     # Still good resolution for water segmentation
+NUM_WORKERS = 8       # Increased from 4 to utilize CPU cores better
+IMAGE_HEIGHT = 512    # Increased from 384 for better detail capture
+IMAGE_WIDTH = 512     # Higher resolution for better water boundary detection
 PIN_MEMORY = True
+
+# Additional optimizations for 40GB GPU
+# ACCUMULATE_GRAD_BATCHES = 1  # Can increase if you want even larger effective batch size
+# PREFETCH_FACTOR = 2          # Prefetch more batches for faster data loading
 
 #         True: Load a previously saved model checkpoint before training or evaluation.
 #        (e.g., to continue training from where you left off or to evaluate a pretrained model)
@@ -151,6 +155,7 @@ ToTensor: NumPy arrays → PyTorch tensors, HWC → CHW
         pin_memory=PIN_MEMORY
     )
     
+    # Advanced optimizations for large GPU memory
     scaler = torch.amp.GradScaler()  # For mixed precision training
     
     # Track best model performance
@@ -218,7 +223,7 @@ ToTensor: NumPy arrays → PyTorch tensors, HWC → CHW
     
     # Save some test predictions
     save_predictions_as_imgs(
-        test_loader, model, folder="test_predictions/", device=DEVICE
+        test_loader, model, folder="test_predictions_efficientnet-b4/", device=DEVICE
     )
     
 if __name__ == "__main__": 
