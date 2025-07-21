@@ -18,24 +18,20 @@ def save_image_to_minio(message_value):
     """Extract base64 image and save as actual image file in MinIO"""
     try:
         # Parse the JSON message
-        data = json.loads(message_value) if isinstance(message_value, str) else message_value
-        
-        # Extract image data
-        image_base64 = data.get('image', '')
-        filename = data.get('filename', f'image_{datetime.now().strftime("%Y%m%d_%H%M%S")}.png')
-        
+        image_data = message_value['image']
+        key = message_value['filename']
         # Decode base64 to binary
-        image_bytes = base64.b64decode(image_base64)
+        image_bytes = base64.b64decode(image_data)
         
         # Upload to MinIO as actual image file
         s3_client.put_object(
             Bucket='river',
-            Key=filename,
+            Key=key,
             Body=image_bytes,
             ContentType='image/png'  # Adjust based on your image type
         )
         
-        print(f"📸 Image saved to MinIO: images/{filename}")
+        print(f"📸 Image saved to MinIO: images/{key}")
         return message_value
     except Exception as e:
         print(f"❌ Error saving image: {e}")
