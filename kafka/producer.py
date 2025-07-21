@@ -8,7 +8,7 @@ from sseclient import SSEClient as EventSource
 
 # https://docs.confluent.io/platform/current/clients/producer.html
 # https://docs.confluent.io/platform/current/installation/configuration/producer-configs.html
-def create_kafka_producer(bootstrap_server, acks, linger_ms=0, batch_size=16 * 1024, compression_type=None):
+def create_kafka_producer(bootstrap_server, acks, linger_ms=0, batch_size=16 * 1024, compression_type=None, use_sasl=False, sasl_username=None, sasl_password=None):
     config = {
         # User-specific properties that you must set
         'bootstrap.servers': bootstrap_server,
@@ -21,8 +21,16 @@ def create_kafka_producer(bootstrap_server, acks, linger_ms=0, batch_size=16 * 1
         # 'enable.idempotence': True (default)
         'linger.ms': linger_ms,  # Wait up to x ms for the batch to fill before sending default 0
         'compression.type': compression_type  # None ( default )
-
     }
+    
+    # Add SASL configuration if required
+    if use_sasl:
+        config.update({
+            'security.protocol': 'SASL_PLAINTEXT',
+            'sasl.mechanisms': 'PLAIN',
+            'sasl.username': sasl_username,
+            'sasl.password': sasl_password
+        })
 
     # not working
     # partitioner = RoundRobinPartitioner(partitions=3)  # Assume we have 3 partitions in the topic

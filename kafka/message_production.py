@@ -3,12 +3,12 @@ import json
 import pandas as pd
 from river import datasets, preprocessing
 #import kagglehub
-import pandas as pd
 from river.datasets import synth
 import random
 from producer import create_kafka_producer, delivery_callback
 from server_funcs import parse_command_line_arguments
 import os
+import base64
 # %%
 
 def convert_keys_to_underscores(data):
@@ -29,9 +29,12 @@ if __name__ == "__main__":
 
     args = parse_command_line_arguments()
 
-    # init producer
+    # init producer - using PLAINTEXT (no authentication)
     producer = create_kafka_producer(
-        bootstrap_server=args.bootstrap_server, acks='all',  compression_type='snappy')
+        bootstrap_server=args.bootstrap_server, 
+        acks='all', 
+        compression_type='snappy'
+    )
 # %%
     # path = kagglehub.dataset_download("fedesoriano/the-boston-houseprice-data")
     dataset = datasets.Phishing()
@@ -121,7 +124,7 @@ if __name__ == "__main__":
     print('Messages are being published to Kafka topic')
     messages_count = 0
 
-    for idx, row in df.iterrows():
+    #for idx, row in df.iterrows():
 
         #drift 
         #sample_dict = { str(idx): int(row[0])}
@@ -129,7 +132,7 @@ if __name__ == "__main__":
         #sample_dict = {'x' : {**row[0]}, 'class': row[1]}
         # convert to json format
         #TRump , airline, List dataset 
-        json_message = row.to_json()
+        #json_message = row.to_json()
         #sample_dict = {'data': json.loads(json_message)}
         #Chinese Beijing
         #sample_dict = {'value' : row[0], 'class': row[1]}
@@ -141,13 +144,30 @@ if __name__ == "__main__":
         #row_dict_converted = convert_keys_to_underscores(row_dict)
         #json_message = json.dumps(row_dict_converted)
         # Produce the message to kafka
-        producer.produce(
-            args.topic_name, value=json_message, key=str(idx), callback=delivery_callback)
+        # producer.produce(
+        #     args.topic_name, value=json_message, key=str(idx), callback=delivery_callback)
 
-        # Polling to handle responses
-        producer.poll(0)
+        # # Polling to handle responses
+        # producer.poll(0)
 
-        messages_count += 1
+        # messages_count += 1
+    with open('selfhostsetup.png', 'rb') as image_file:
+        image_data = image_file.read()
+        
+        image_base_64 = base64.b64encode(image_data).decode('utf-8')
+        
+    message = {
+        'filename': 'selfhostsetup.png',
+        'image': image_base_64,
+        'date'  : '2023-10-01', 
+    }
+    
+    producer.produce(
+        args.topic_name, 
+        value=json.dumps(message), 
+        key=str(0), 
+        callback=delivery_callback
+    )
 
     # Flush to ensure all messages are sent before exit
     producer.flush()
