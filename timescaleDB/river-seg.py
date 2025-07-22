@@ -5,7 +5,7 @@ import time
 def send_real_time_data(water_coverage, confidence, overflow_detected):
     """Send river segmentation results to TimescaleDB"""
     conn = psycopg2.connect(
-        dbname="test",
+        dbname="river",
         user="postgres", 
         password="password",
         host="linux-pc",

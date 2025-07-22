@@ -5,7 +5,7 @@ from confluent_kafka.admin import (AdminClient, NewTopic, NewPartitions, ConfigR
                                    ScramMechanism, ScramCredentialInfo,
                                    UserScramCredentialUpsertion, UserScramCredentialDeletion,
                                    OffsetSpec)
-from kafka_server_funcs import parse_command_line_arguments
+from server_funcs import parse_command_line_arguments
 
 
 def example_create_topics(a: AdminClient, topics: list[str], num_partitions: int = 3,  rep_factor: int = 1) -> None:

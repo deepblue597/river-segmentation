@@ -101,6 +101,8 @@ services:
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@controller-riverseg-1:9093,2@controller-riverseg-2:9093,3@controller-riverseg-3:9093
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_LOG_DIRS: /var/lib/kafka/data
+      # Auto topic creation
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
       # SASL Configuration
       KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
       KAFKA_LISTENER_NAME_SASL_PLAINTEXT_SASL_ENABLED_MECHANISMS: PLAIN
@@ -131,6 +133,8 @@ services:
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@controller-riverseg-1:9093,2@controller-riverseg-2:9093,3@controller-riverseg-3:9093
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_LOG_DIRS: /var/lib/kafka/data
+      # Auto topic creation
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
       # SASL Configuration
       KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
       KAFKA_LISTENER_NAME_SASL_PLAINTEXT_SASL_ENABLED_MECHANISMS: PLAIN
@@ -161,6 +165,8 @@ services:
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@controller-riverseg-1:9093,2@controller-riverseg-2:9093,3@controller-riverseg-3:9093
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_LOG_DIRS: /var/lib/kafka/data
+      # Auto topic creation
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
       # SASL Configuration
       KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
       KAFKA_LISTENER_NAME_SASL_PLAINTEXT_SASL_ENABLED_MECHANISMS: PLAIN
