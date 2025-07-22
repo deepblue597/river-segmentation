@@ -123,9 +123,6 @@ if __name__ == "__main__":
 # %%
     print('Messages are being published to Kafka topic')
     messages_count = 0
-    
-    folder_path = './images'  # change to your folder
-    
 
     #for idx, row in df.iterrows():
 
@@ -154,26 +151,23 @@ if __name__ == "__main__":
         # producer.poll(0)
 
         # messages_count += 1
-    for image_filename  in os.listdir(folder_path):
-        file_path = os.path.join(folder_path, image_filename)  # join folder + filename
-        with open(file_path, 'rb') as image_file:
-            image_data = image_file.read()
-            
-            image_base_64 = base64.b64encode(image_data).decode('utf-8')
-            
-        message = {
-            'filename':image_filename,
-            'image': image_base_64,
-            'date'  : '2023-10-01', 
-        }
+    with open('selfhostsetup.png', 'rb') as image_file:
+        image_data = image_file.read()
         
-        producer.produce(
-            args.topic_name, 
-            value=json.dumps(message), 
-            key=str(messages_count), 
-            callback=delivery_callback
-        )
-        messages_count += 1
+        image_base_64 = base64.b64encode(image_data).decode('utf-8')
+        
+    message = {
+        'filename': 'selfhostsetup.png',
+        'image': image_base_64,
+        'date'  : '2023-10-01', 
+    }
+    
+    producer.produce(
+        args.topic_name, 
+        value=json.dumps(message), 
+        key=str(0), 
+        callback=delivery_callback
+    )
 
     # Flush to ensure all messages are sent before exit
     producer.flush()

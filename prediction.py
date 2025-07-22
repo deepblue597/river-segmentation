@@ -6,10 +6,10 @@ from predict_single_image import predict_and_save
 
 app = Application(
     broker_address='linux-pc:39092',
-    consumer_group='model-prediction', 
+    consumer_group='model-prediction-04', 
     auto_offset_reset='earliest',
     # Add debug logging
-    loglevel='DEBUG'
+    #loglevel='DEBUG'
 )
 topic = app.topic('River')
 

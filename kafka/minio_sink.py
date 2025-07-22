@@ -26,7 +26,7 @@ def save_image_to_minio(message_value):
         # Upload to MinIO as actual image file
         s3_client.put_object(
             Bucket='river',
-            Key=key,
+            Key=f"iamges/{key}",
             Body=image_bytes,
             ContentType='image/png'  # Adjust based on your image type
         )
@@ -39,19 +39,19 @@ def save_image_to_minio(message_value):
 
 app = Application(
     broker_address='linux-pc:39092',
-    consumer_group='minio-fresh', 
+    consumer_group='minio-fresh-6', 
     auto_offset_reset='earliest',
     # Add debug logging
-    loglevel='DEBUG'
+    #loglevel='DEBUG'
 )
 topic = app.topic('River')
 
 sdf = app.dataframe(topic=topic)
 
 # Add some debugging
-sdf = sdf.update(lambda value: print(f"📥 Received message: {value}") or value)
-sdf = sdf.update(save_image_to_minio)  # Save image to MinIO
-sdf = sdf.update(lambda value: print(f"✅ Processing complete") or value)
+#sdf = sdf.update(lambda value: print(f"📥 Received message: {value}") or value)
+sdf = sdf.apply(save_image_to_minio)  # Save image to MinIO
+#sdf = sdf.update(lambda value: print(f"✅ Processing complete") or value)
 
 if __name__ == "__main__":
     app.run()
