@@ -13,30 +13,29 @@ model.load_model()
 model.minIOConnection(
     address='linux-pc', 
     port=9000, 
+    target='river',  # Added missing bucket name
     access_key='minio',
-    secret_key='minio123',
-    region_name='eu-west-1'    
+    secret_key='minio123'
 )
 
 model.timescaleConnection(
     address='linux-pc', 
     port=5432,
-    database='river',
+    target='river',  # Changed from 'database' to 'target'
     username='postgres',
-    password='password',
-    table_name='river_seg'
+    password='password'
 )
 
 model.kafkaConnection(
     address='linux-pc',
     port=39092,
-    target='River',
-    consumer_group= 'model-prediction-04',
+    topic='River',  # Changed from 'target' to 'topic'
+    consumer_group='model-prediction-04',
     auto_offset_reset='earliest',
-    security_protocol='plaintext',
+    security_protocol='plaintext'
 )
 
-model.__str__()
+print(f"Model loaded: {model}")
 
 if __name__ == "__main__":
     # Start the model prediction application

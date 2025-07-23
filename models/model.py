@@ -176,7 +176,7 @@ class RiverSegmentationModel:
         self.KafkaConnector = KafkaConnector(
             address=address,  # Replace with actual Kafka address
             port=port,           # Replace with actual Kafka port
-            topic=topic,  # Replace with actual topic name    
+            target=topic,  # Replace with actual topic name    
             consumer_group=consumer_group,  # Replace with actual consumer group
             auto_offset_reset=auto_offset_reset,
             security_protocol=security_protocol,
