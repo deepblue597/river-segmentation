@@ -1,9 +1,28 @@
 
-from sqlalchemy import MetaData, Table, create_engine
+from sqlalchemy import MetaData, Table, create_engine, text
 from connectors import Connector
 
 
 class TimescaleConnector(Connector):
+    """
+    A connector for TimescaleDB that extends the base Connector class.
+    It provides methods to connect, disconnect, check connection status, and retrieve connection information.
+    
+    Attributes:
+        address (str): The TimescaleDB server address.
+        port (int): The port number for the TimescaleDB server.
+        target (str): The TimescaleDB database name.
+        username (str, optional): The username for authentication.
+        password (str, optional): The password for authentication.
+    
+    Methods:
+        connect(): Connects to the TimescaleDB server.
+        disconnect(): Disconnects from the TimescaleDB server.
+        is_connected(): Checks if the connection to the TimescaleDB server is active.
+        get_connection_info(): Returns a dictionary with connection information.
+        insert_data(table_name, data): Inserts data into a TimescaleDB table.
+        
+    """
     
     def __init__(
         self, 
@@ -27,7 +46,7 @@ class TimescaleConnector(Connector):
             )
             
             with self.engine.connect() as connection:
-                result = connection.execute("SELECT 1")
+                result = connection.execute(text("SELECT 1"))
                 if result.fetchone() is not None:
                     print("Connected to TimescaleDB:", self.target)
             
@@ -50,6 +69,7 @@ class TimescaleConnector(Connector):
         # Check if the connection is active
         try:
             with self.engine.connect() as connection:
+                connection.execute(text("SELECT 1"))
                 return True
         except Exception:
             return False
@@ -66,16 +86,16 @@ class TimescaleConnector(Connector):
         # Insert data into a TimescaleDB table
         try:
             with self.engine.connect() as connection:
-                table_name_connection = Table(
+                # Load table metadata
+                table_obj = Table(
                     table_name, 
-                    MetaData(), 
+                    self.metadata, 
                     autoload_with=self.engine
                 )
                 
-                insert_stmt = table_name_connection.insert().values(data)
+                insert_stmt = table_obj.insert().values(data)
                 result = connection.execute(insert_stmt)
                 connection.commit()
-                print(f'result: {result}')
                 print(f"Data inserted into {table_name} successfully.")
         except Exception as e:
             print(f"Failed to insert data into {table_name}: {str(e)}")

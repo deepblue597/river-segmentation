@@ -62,8 +62,8 @@ class KafkaConnector(Connector):
                 auto_offset_reset=self.auto_offset_reset
             )
             
-            self.topic = self.app.topic(self.target, value_deserializer='json')
-            self.sdf_stream = self.app.dataframe(topic=self.topic)
+            self.topic_obj = self.app.topic(self.target, value_deserializer='json')
+            self.sdf_stream = self.app.dataframe(topic=self.topic_obj)
             print("Connected to Kafka topic:", self.target)
         except Exception as e:
             print(f"Failed to connect to Kafka: {str(e)}")
@@ -75,7 +75,11 @@ class KafkaConnector(Connector):
         print("Disconnecting from Kafka...")
         try:
             # Add disconnection logic here
-            self.app.stop()
+            if hasattr(self, 'app') and self.app is not None:
+                self.app.stop()
+            self.app = None
+            self.topic_obj = None
+            self.sdf_stream = None
             print("Disconnected from Kafka.")
         except Exception as e:
             print(f"Failed to disconnect from Kafka: {str(e)}")
@@ -83,7 +87,7 @@ class KafkaConnector(Connector):
         
     def is_connected(self):
         # Check if the connection is active
-        return self.app is not None and self.topic is not None  
+        return hasattr(self, 'app') and self.app is not None and hasattr(self, 'topic_obj') and self.topic_obj is not None  
     
     def get_connection_info(self):
         # Return connection information

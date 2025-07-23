@@ -4,6 +4,26 @@ import boto3
 
 class MinIOConnector(Connector):
     
+    """A connector for MinIO that extends the base Connector class.
+    It provides methods to connect, disconnect, check connection status, and retrieve connection information.
+    Attributes:
+        address (str): The MinIO server address.
+        port (int): The port number for the MinIO server.
+        target (str): The MinIO bucket name.
+        access_key (str, optional): The access key for MinIO authentication.
+        secret_key (str, optional): The secret key for MinIO authentication.
+        region_name (str): The region name for MinIO, default is 'eu-west-1'.
+        
+    Methods:
+        connect(): Connects to the MinIO server.
+        disconnect(): Disconnects from the MinIO server.
+        is_connected(): Checks if the connection to the MinIO server is active.
+        get_connection_info(): Returns a dictionary with connection information.
+        insert_object(object_name, data, content_type='image/png'): Inserts an object into the MinIO bucket.
+        get_object(object_name): Retrieves an object from the MinIO bucket.
+        
+        """
+    
     def __init__(
         self, 
         address, 
@@ -48,7 +68,14 @@ class MinIOConnector(Connector):
         
     def is_connected(self):
         # Check if the connection is active
-        return self.s3_client is not None
+        try:
+            if self.s3_client is None:
+                return False
+            # Try a simple operation to verify connection
+            self.s3_client.list_buckets()
+            return True
+        except Exception:
+            return False
     
     def get_connection_info(self):
         # Return connection information
