@@ -149,7 +149,7 @@ class RiverSegmentationModel:
         self.MinIOconnector.connect()
         
     
-    def timescaleConnection(self, address, port, target, username, password):
+    def timescaleConnection(self, address, port, target, username, password , table_name='predictions'):
         """
         Returns a TimescaleDB connector instance.
         This is a placeholder for the actual implementation.
@@ -163,6 +163,7 @@ class RiverSegmentationModel:
             password=password
         )
         
+        self.table = table_name
         self.TimescaleDBconnector.connect()
     
     
@@ -259,7 +260,7 @@ class RiverSegmentationModel:
             )
             
             self.TimescaleDBconnector.insert_data(
-                table_name='predictions',
+                table_name=self.table,
                 data={
                     'timestamp': datetime.now(),
                     'model_name': self.model_name,

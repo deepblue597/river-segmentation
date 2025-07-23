@@ -30,14 +30,14 @@ class KafkaConnector(Connector):
         self, 
         address, 
         port, 
-        topic , 
+        target , 
         consumer_group , 
         auto_offset_reset='earliest' , 
         security_protocol='plaintext', 
         username=None, 
         password=None):
         
-        super().__init__(address, port, topic)
+        super().__init__(address, port, target)
         self.consumer_group = consumer_group
         self.auto_offset_reset = auto_offset_reset
         self.security_protocol = security_protocol
