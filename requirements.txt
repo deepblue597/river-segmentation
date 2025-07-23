@@ -1,0 +1,10 @@
+opencv-python
+torch
+torchvision
+segmentation-models-pytorch
+albumentations
+boto3
+sqlalchemy
+psycopg2-binary
+quixstreams
+numpy
