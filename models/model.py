@@ -230,6 +230,14 @@ class RiverSegmentationModel:
             print(f"Average confidence: {avg_confidence:.2f}")
             
             # Connect to MinIO and save the images
+            # Save original image first
+            original_encoded = cv2.imencode('.png', cv2.cvtColor(original_image, cv2.COLOR_RGB2BGR))[1].tobytes()
+            self.MinIOconnector.insert_object(
+                object_name=f'originals/{X["filename"]}',
+                data=original_encoded,
+                content_type='image/png'
+            )
+            
             # Encode prediction mask as PNG bytes
             encoded_mask = cv2.imencode('.png', prediction_mask * 255)[1].tobytes()
             self.MinIOconnector.insert_object(
