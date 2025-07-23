@@ -9,8 +9,8 @@ import cv2
 import numpy as np
 import os
 import glob
-from model import model, device
-from utils import load_checkpoint
+from model_train.model import model, device
+from model_train.utils import load_checkpoint
 from tqdm import tqdm
 
 def batch_predict_water_segmentation(input_folder, output_folder="batch_predictions", model_path="best_model.pth.tar", mask_folder=None):

@@ -3,7 +3,7 @@ import torch
 import torchvision
 import cv2
 import numpy as np
-from dataset import RiverDataset
+from model_train.dataset import RiverDataset
 from torch.utils.data import DataLoader
 import random
 from sklearn.model_selection import train_test_split
