@@ -107,7 +107,7 @@ class RiverSegmentationModel:
         
         if os.path.exists(self.model_path):
             checkpoint = torch.load(self.model_path, map_location=self.device)
-            self.model.load_state_dict(checkpoint['model_state_dict'])
+            self.model.load_state_dict(checkpoint['state_dict'])
             
             self.model.to(self.device)
             self.model.eval()
@@ -267,7 +267,7 @@ class RiverSegmentationModel:
                     'filename': X['filename'],
                     'water_coverage': float(water_percentage),
                     'avg_confidence': float(avg_confidence), 
-                    'overflow_flag': overflow_flag,
+                    'overflow_detected': overflow_flag,
                     'location': X.get('location', 'unknown'),  # Use .get() to safely access location
                 }
             )
@@ -293,4 +293,31 @@ class RiverSegmentationModel:
         
         self.KafkaConnector.sdf_stream = self.KafkaConnector.sdf_stream.apply(self.predict)
         # Start the streaming application
-        self.KafkaConnector.app.run() 
+        try:
+            self.KafkaConnector.app.run()
+        except KeyboardInterrupt:
+            print("Received KeyboardInterrupt in streaming app")
+            raise  # Re-raise so the main script can handle cleanup
+        finally:
+            print("Streaming application stopped")
+    
+    def disconnect_all(self):
+        """Disconnect from all services"""
+        print("Disconnecting from all services...")
+        try:
+            if hasattr(self, 'KafkaConnector') and self.KafkaConnector:
+                #print("Disconnecting from Kafka...")
+                self.KafkaConnector.disconnect()
+            
+            if hasattr(self, 'MinIOconnector') and self.MinIOconnector:
+                #print("Disconnecting from MinIO...")
+                self.MinIOconnector.disconnect()
+            
+            if hasattr(self, 'TimescaleDBconnector') and self.TimescaleDBconnector:
+                #print("Disconnecting from TimescaleDB...")
+                self.TimescaleDBconnector.disconnect()
+                
+            print("All connections closed successfully.")
+        except Exception as e:
+            print(f"Error during disconnect: {e}") 
+        
