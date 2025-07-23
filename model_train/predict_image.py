@@ -9,8 +9,8 @@ from albumentations.pytorch import ToTensorV2
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-from model import model, device
-from utils import load_checkpoint
+from model_train.model import model, device
+from model_train.utils import load_checkpoint
 import os
 
 def predict_water_segmentation(image_path, model_path="best_model.pth.tar"):

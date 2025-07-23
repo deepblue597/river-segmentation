@@ -2,8 +2,8 @@ import albumentations as A
 from albumentations.pytorch import ToTensorV2
 import torch 
 from tqdm import tqdm
-from model import model, device
-from utils import save_checkpoint, load_checkpoint, check_accuracy, get_loaders, get_test_loader, save_predictions_as_imgs, split_dataset
+from model_train.model import model, device
+from model_train.utils import save_checkpoint, load_checkpoint, check_accuracy, get_loaders, get_test_loader, save_predictions_as_imgs, split_dataset
 import os
 import kagglehub
 

@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 from PIL import Image
 import os
 import argparse
-from model import model, device
-from utils import load_checkpoint
+from model_train.model import model, device
+from model_train.utils import load_checkpoint
 import boto3
 from sqlalchemy import create_engine , Column , Integer , String , Float , Boolean , MetaData , Table, text
 from sqlalchemy.dialects.postgresql import TIMESTAMP
