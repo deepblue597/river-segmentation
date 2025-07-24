@@ -2,40 +2,41 @@
 from models.model import RiverSegmentationModel
 import signal
 import sys
+import os
 
 
 model = RiverSegmentationModel(
-    model_path="best_model.pth.tar",
-    model_name="unetplusplus_efficientnet-b3",
-    overflow_threshold=80,
+    model_path=os.environ.get("MODEL_PATH", "best_model.pth.tar"),
+    model_name=os.environ.get("MODEL_NAME", "unetplusplus_efficientnet-b3"),
+    overflow_threshold=int(os.environ.get("OVERFLOW_THRESHOLD", "80")),
 )
 
 model.load_model()
 
 model.minIOConnection(
-    address='linux-pc', 
-    port=9000, 
-    target='river',  # Added missing bucket name
-    access_key='minio',
-    secret_key='minio123'
+    address=os.environ.get("MINIO_ADDRESS", "linux-pc"), 
+    port=int(os.environ.get("MINIO_PORT", "9000")), 
+    target=os.environ.get("MINIO_BUCKET", "river"),  # Added missing bucket name
+    access_key=os.environ.get("MINIO_ACCESS_KEY", "minio"),
+    secret_key=os.environ.get("MINIO_SECRET_KEY", "minio123")
 )
 
 model.timescaleConnection(
-    address='linux-pc', 
-    port=5432,
-    target='river',  # Changed from 'database' to 'target'
-    username='postgres',
-    password='password', 
-    table_name='river_segmentation',
+    address=os.environ.get("TIMESCALE_ADDRESS", "linux-pc"), 
+    port=int(os.environ.get("TIMESCALE_PORT", "5432")),
+    target=os.environ.get("TIMESCALE_DB", "river"),  # Changed from 'database' to 'target'
+    username=os.environ.get("TIMESCALE_USER", "postgres"),
+    password=os.environ.get("TIMESCALE_PASSWORD", "password"), 
+    table_name=os.environ.get("TIMESCALE_TABLE", "river_segmentation"),
 )
 
 model.kafkaConnection(
-    address='linux-pc',
-    port=39092,
-    topic='River',  # Changed from 'target' to 'topic'
-    consumer_group='model-prediction-06',
-    auto_offset_reset='earliest',
-    security_protocol='plaintext'
+    address=os.environ.get("KAFKA_ADDRESS", "linux-pc"),
+    port=int(os.environ.get("KAFKA_PORT", "39092")),
+    topic=os.environ.get("KAFKA_TOPIC", "River"),  # Changed from 'target' to 'topic'
+    consumer_group=os.environ.get("KAFKA_CONSUMER_GROUP", "model-prediction-06"),
+    auto_offset_reset=os.environ.get("KAFKA_AUTO_OFFSET_RESET", "earliest"),
+    security_protocol=os.environ.get("KAFKA_SECURITY_PROTOCOL", "plaintext")
 )
 
 print(f"Model loaded: {model}")

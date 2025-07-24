@@ -27,6 +27,31 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
 # Copy application code and model
 COPY . .
 
+# Set environment variables for configuration
+ENV MODEL_PATH=best_model.pth.tar
+ENV MODEL_NAME=unetplusplus_efficientnet-b3
+ENV OVERFLOW_THRESHOLD=80
+
+ENV MINIO_ADDRESS=linux-pc
+ENV MINIO_PORT=9000
+ENV MINIO_BUCKET=river
+ENV MINIO_ACCESS_KEY=minio
+ENV MINIO_SECRET_KEY=minio123
+
+ENV TIMESCALE_ADDRESS=linux-pc
+ENV TIMESCALE_PORT=5432
+ENV TIMESCALE_DB=river
+ENV TIMESCALE_USER=postgres
+ENV TIMESCALE_PASSWORD=password
+ENV TIMESCALE_TABLE=river_segmentation
+
+ENV KAFKA_ADDRESS=linux-pc
+ENV KAFKA_PORT=39092
+ENV KAFKA_TOPIC=River
+ENV KAFKA_CONSUMER_GROUP=model-prediction-06
+ENV KAFKA_AUTO_OFFSET_RESET=earliest
+ENV KAFKA_SECURITY_PROTOCOL=plaintext
+
 # Create a non-root user for security
 RUN useradd -m -u 1001 appuser && \
     chown -R appuser:appuser /app && \
@@ -35,9 +60,9 @@ RUN useradd -m -u 1001 appuser && \
 # Switch to non-root user
 USER appuser
 
-# Add healthcheck
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD python -c "import sys; sys.exit(0)" || exit 1
+# Add healthcheck to verify the application is working
+HEALTHCHECK --interval=30s --timeout=15s --start-period=120s --retries=3 \
+    CMD python -c "import torch, cv2, numpy as np; from models.model import RiverSegmentationModel; import os; exit(0 if os.path.exists('best_model.pth.tar') else 1)" || exit 1
 
 # Run the streaming application
 CMD ["python", "streaming.py"]
