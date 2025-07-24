@@ -9,6 +9,8 @@ from producer import create_kafka_producer, delivery_callback
 from server_funcs import parse_command_line_arguments
 import os
 import base64
+import glob
+from datetime import datetime
 # %%
 
 def convert_keys_to_underscores(data):
@@ -35,139 +37,72 @@ if __name__ == "__main__":
         acks='all', 
         compression_type='snappy'
     )
-# %%
-    # path = kagglehub.dataset_download("fedesoriano/the-boston-houseprice-data")
-    dataset = datasets.Phishing()
-    #dataset = datasets.TrumpApproval()
-    #dataset = datasets.ImageSegments()
-    #dataset = datasets.CreditCard()
-    # print("Path to dataset files:", path)
-    #gen = synth.Agrawal(classification_function=0, seed=42)
-    # gen = synth.ConceptDriftStream(stream=synth.SEA(seed=42, variant=0),
-    #                                drift_stream=synth.SEA(seed=42, variant=1),
-    #                                seed=1, position=500, width=50)
-    #dataset = iter(gen.take(1000))
-    # dataset = synth.ConceptDriftStream(
-    #    seed=42,
-    #    position=500,
-    #    width=40).take(1000)
-    #dataset = datasets.Bananas().take(500)
-    # dataset = [
-    #     [1, 2],
-    #     [1, 4],
-    #     [1, 0],
-    #     [-4, 2],
-    #     [-4, 4],
-    #     [-4, 0],
-    #     [5, 0],
-    #     [5, 2],
-    #     [5, 4]
-    # ]
-    #dataset = datasets.AirlinePassengers()
     
-    #rng = random.Random(12345)
-    #dataset = rng.choices([0, 1], k=1000) + rng.choices(range(4, 8), k=1000)
-    #dataset = synth.Logical(seed=42, n_tiles=100)
-#     dataset = [
-#     ("Chinese Beijing Chinese", "yes"),
-#     ("Chinese Chinese Shanghai", "yes"),
-#     ("Chinese Macao", "yes"),
-#     ("Tokyo Japan Chinese", "no")
-# ]
-    # dataset = (
-    #     ({'user': 'Alice', 'item': 'Superman', 'time': .12}, True),
-    #     ({'user': 'Alice', 'item': 'Terminator', 'time': .13}, True),
-    #     ({'user': 'Alice', 'item': 'Star Wars', 'time': .14}, True),
-    #     ({'user': 'Alice', 'item': 'Notting Hill', 'time': .15}, False),
-    #     ({'user': 'Alice', 'item': 'Harry Potter ', 'time': .16}, True),
-    #     ({'user': 'Bob', 'item': 'Superman', 'time': .13}, True),
-    #     ({'user': 'Bob', 'item': 'Terminator', 'time': .12}, True),
-    #     ({'user': 'Bob', 'item': 'Star Wars', 'time': .16}, True),
-    #     ({'user': 'Bob', 'item': 'Notting Hill', 'time': .10}, False)
-    # )
-    #path = kagglehub.dataset_download("fedesoriano/heart-failure-prediction")
-    #path = kagglehub.dataset_download("unsdsn/world-happiness")
-    #print("Path to dataset files:", path)
-    
-    #dataset = datasets.Elec2()
-    #path = kagglehub.dataset_download("vstacknocopyright/electricity")
-# %%
-    #path
-
-# %%
-    # csv_path = os.path.join(path, "boston.csv")
-    # Trump approval , Airline , Phising
-    df = pd.read_csv(dataset.path)
-    #df = pd.read_csv(path+'/2019.csv')
-    #df = pd.read_csv(path+'/electricity-normalized.csv')
-    # Bananas, Clustering , CreditCard
-    #df = pd.DataFrame(dataset)
-# %%
-    df
-    
-#%% 
-
-# for idx, row in df.iterrows():
-#     json_message = row.to_json()
-#     #sample_dict = { str(idx): int(row[0])}
-#     #json_message = json.dumps({str(idx): row[0]})
-#     #sample_dict = {**row[0].isoformat(), 'passengers': row[1]}
-#     #sample_dictimport kagglehub
-
-# Download latest version
-#path = kagglehub.dataset_download("fedesoriano/heart-failure-prediction")
-
-#print("Path to dataset files:", path) = {'data': **row[0], 'class': row[1]}
-#     sample_dict = {'data' : json_message}
-#     print(sample_dict)
-# %%
     print('Messages are being published to Kafka topic')
     messages_count = 0
-
-    #for idx, row in df.iterrows():
-
-        #drift 
-        #sample_dict = { str(idx): int(row[0])}
-        # bananas , CreditCard , facto , Agrawal
-        #sample_dict = {'x' : {**row[0]}, 'class': row[1]}
-        # convert to json format
-        #TRump , airline, List dataset 
-        #json_message = row.to_json()
-        #sample_dict = {'data': json.loads(json_message)}
-        #Chinese Beijing
-        #sample_dict = {'value' : row[0], 'class': row[1]}
-        #json_message = convert_keys_to_underscores(json_message)
-        #json_message = json.dumps({str(idx): int(row[0])})
-        #json_message = json.dumps(sample_dict)
-        #print(json_message)
-        #row_dict = row.to_dict()
-        #row_dict_converted = convert_keys_to_underscores(row_dict)
-        #json_message = json.dumps(row_dict_converted)
-        # Produce the message to kafka
-        # producer.produce(
-        #     args.topic_name, value=json_message, key=str(idx), callback=delivery_callback)
-
-        # # Polling to handle responses
-        # producer.poll(0)
-
-        # messages_count += 1
-    with open('selfhostsetup.png', 'rb') as image_file:
-        image_data = image_file.read()
-        
-        image_base_64 = base64.b64encode(image_data).decode('utf-8')
-        
-    message = {
-        'filename': 'selfhostsetup.png',
-        'image': image_base_64,
-        'date'  : '2023-10-01', 
-    }
     
-    producer.produce(
-        args.topic_name, 
-        value=json.dumps(message), 
-        key=str(0), 
-        callback=delivery_callback
-    )
-
+    # Path to save_images folder
+    images_folder = 'saved_images'
+    
+    # Check if folder exists
+    if not os.path.exists(images_folder):
+        print(f"Error: {images_folder} folder not found!")
+        exit(1)
+    
+    # Get all image files from the folder
+    image_extensions = ['*.jpg', '*.jpeg', '*.png', '*.bmp', '*.tiff']
+    image_files = []
+    
+    for extension in image_extensions:
+        image_files.extend(glob.glob(os.path.join(images_folder, extension)))
+        #image_files.extend(glob.glob(os.path.join(images_folder, extension.upper())))
+    
+    print(f"Found {len(image_files)} images in {images_folder} folder")
+    
+    if len(image_files) == 0:
+        print(f"No image files found in {images_folder} folder!")
+        exit(1)
+    
+    # Send each image to Kafka
+    for idx, image_path in enumerate(image_files):
+        try:
+            # Read image file
+            with open(image_path, 'rb') as image_file:
+                image_data = image_file.read()
+                
+            # Encode to base64
+            image_base64 = base64.b64encode(image_data).decode('utf-8')
+            
+            # Get filename without path
+            filename = os.path.basename(image_path)
+            
+            # Create message
+            message = {
+                'filename': filename,
+                'image': image_base64,
+                'date': datetime.now().isoformat(),
+                'message_id': idx,
+                'file_size': len(image_data)
+            }
+            
+            # Send to Kafka
+            producer.produce(
+                args.topic_name, 
+                value=json.dumps(message), 
+                key=str(idx), 
+                callback=delivery_callback
+            )
+            
+            # Poll to handle responses
+            producer.poll(0)
+            
+            messages_count += 1
+            print(f"Sent image {idx + 1}/{len(image_files)}: {filename} ({len(image_data)} bytes)")
+            
+        except Exception as e:
+            print(f"Error processing {image_path}: {e}")
+            continue
+    
     # Flush to ensure all messages are sent before exit
     producer.flush()
+    print(f"Successfully sent {messages_count} images to Kafka topic '{args.topic_name}'")
