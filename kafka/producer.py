@@ -54,5 +54,6 @@ def delivery_callback(err, msg):
     if err:
         print(f'ERROR: Message failed delivery: {err}')
     else:
-        print(
-            f"Produced event to topic {msg.topic()}: partition {msg.partition()}: value = {msg.value().decode('utf-8')}")
+        # print(
+        #     f"Produced event to topic {msg.topic()}: partition {msg.partition()}: value = {msg.value().decode('utf-8')}")
+        pass
