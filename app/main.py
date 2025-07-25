@@ -63,7 +63,7 @@ def main():
     
     # Sidebar configuration
     st.sidebar.header("⚙️ Configuration")
-    
+        
     # Kafka settings
     bootstrap_server = st.sidebar.text_input(
         "Kafka Bootstrap Server", 
@@ -73,7 +73,7 @@ def main():
     
     topic_name = st.sidebar.text_input(
         "Kafka Topic", 
-        value="river-images",
+        value="River",
         help="Topic to send images to"
     )
     

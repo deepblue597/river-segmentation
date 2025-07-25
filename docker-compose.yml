@@ -7,63 +7,62 @@ services:
       sh -c "
         chown -R 1000:1000 /data/timescaledb &&
         chown -R 472:472 /data/grafana &&
+        mkdir -p /data/kafka/controller1 /data/kafka/controller2 /data/kafka/controller3 &&
+        mkdir -p /data/kafka/broker1 /data/kafka/broker2 /data/kafka/broker3 &&
+        chmod -R 755 /data/kafka &&
         echo 'Permissions set successfully'
       "
     volumes:
       - ./data/timescaledb:/data/timescaledb
       - ./data/grafana:/data/grafana
+      - ./data/kafka:/data/kafka
     restart: "no"
 
   timescaledb:
     container_name: timescaledb
     image: timescale/timescaledb-ha:pg17
-    user: "1000:1000" # Add this line
+    depends_on:
+      - init-permissions
+    user: "1000:1000"
     environment:
       - PGDATA=/pgdata
       - POSTGRES_PASSWORD=password
-
     volumes:
       - ./data/timescaledb:/pgdata
-
     ports:
       - "5432:5432"
-
     restart: unless-stopped
 
   grafana:
     container_name: grafana
     image: grafana/grafana-enterprise
-
+    depends_on:
+      - init-permissions
     volumes:
       - ./data/grafana:/var/lib/grafana
-
     ports:
       - "3001:3000"
-
     restart: unless-stopped
 
   minio:
     container_name: minio
     image: quay.io/minio/minio
-
     environment:
       - MINIO_ROOT_USER=minio
       - MINIO_ROOT_PASSWORD=minio123
-
     command: server /data --console-address ":9001"
-
     ports:
       - "9000:9000"
       - "9001:9001"
-
     volumes:
       - ./data/minio:/data
-
     restart: unless-stopped
 
   controller-riverseg-1:
     image: apache/kafka:latest
     container_name: controller-riverseg-1
+    depends_on:
+      - init-permissions
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: controller
@@ -72,10 +71,15 @@ services:
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@controller-riverseg-1:9093,2@controller-riverseg-2:9093,3@controller-riverseg-3:9093
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+    volumes:
+      - ./data/kafka/controller1:/var/lib/kafka/data
 
   controller-riverseg-2:
     image: apache/kafka:latest
     container_name: controller-riverseg-2
+    depends_on:
+      - init-permissions
     environment:
       KAFKA_NODE_ID: 2
       KAFKA_PROCESS_ROLES: controller
@@ -84,10 +88,15 @@ services:
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@controller-riverseg-1:9093,2@controller-riverseg-2:9093,3@controller-riverseg-3:9093
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+    volumes:
+      - ./data/kafka/controller2:/var/lib/kafka/data
 
   controller-riverseg-3:
     image: apache/kafka:latest
     container_name: controller-riverseg-3
+    depends_on:
+      - init-permissions
     environment:
       KAFKA_NODE_ID: 3
       KAFKA_PROCESS_ROLES: controller
@@ -96,11 +105,14 @@ services:
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@controller-riverseg-1:9093,2@controller-riverseg-2:9093,3@controller-riverseg-3:9093
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+    volumes:
+      - ./data/kafka/controller3:/var/lib/kafka/data
 
   broker-riverseg-1:
     image: apache/kafka:latest
     container_name: broker-riverseg-1
-    user: "0:0" # Run as root to avoid permission issues
+    user: "0:0"
     ports:
       - 29092:9092
       - 29093:9093
@@ -115,8 +127,14 @@ services:
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@controller-riverseg-1:9093,2@controller-riverseg-2:9093,3@controller-riverseg-3:9093
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_LOG_DIRS: /var/lib/kafka/data
-      # Auto topic creation
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      # Message size settings - 50MB max
+      KAFKA_MESSAGE_MAX_BYTES: 52428800
+      KAFKA_REPLICA_FETCH_MAX_BYTES: 52428800
+      KAFKA_SOCKET_REQUEST_MAX_BYTES: 52428800
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824
+      KAFKA_FETCH_MAX_BYTES: 52428800
+      KAFKA_MAX_REQUEST_SIZE: 52428800
       # SASL Configuration
       KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
       KAFKA_LISTENER_NAME_SASL_PLAINTEXT_SASL_ENABLED_MECHANISMS: PLAIN
@@ -132,7 +150,7 @@ services:
   broker-riverseg-2:
     image: apache/kafka:latest
     container_name: broker-riverseg-2
-    user: "0:0" # Run as root to avoid permission issues
+    user: "0:0"
     ports:
       - 39092:9092
       - 39093:9093
@@ -147,9 +165,13 @@ services:
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@controller-riverseg-1:9093,2@controller-riverseg-2:9093,3@controller-riverseg-3:9093
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_LOG_DIRS: /var/lib/kafka/data
-      # Auto topic creation
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-      # SASL Configuration
+      KAFKA_MESSAGE_MAX_BYTES: 52428800
+      KAFKA_REPLICA_FETCH_MAX_BYTES: 52428800
+      KAFKA_SOCKET_REQUEST_MAX_BYTES: 52428800
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824
+      KAFKA_FETCH_MAX_BYTES: 52428800
+      KAFKA_MAX_REQUEST_SIZE: 52428800
       KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
       KAFKA_LISTENER_NAME_SASL_PLAINTEXT_SASL_ENABLED_MECHANISMS: PLAIN
       KAFKA_OPTS: "-Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf"
@@ -164,7 +186,7 @@ services:
   broker-riverseg-3:
     image: apache/kafka:latest
     container_name: broker-riverseg-3
-    user: "0:0" # Run as root to avoid permission issues
+    user: "0:0"
     ports:
       - 49092:9092
       - 49093:9093
@@ -179,9 +201,13 @@ services:
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@controller-riverseg-1:9093,2@controller-riverseg-2:9093,3@controller-riverseg-3:9093
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_LOG_DIRS: /var/lib/kafka/data
-      # Auto topic creation
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-      # SASL Configuration
+      KAFKA_MESSAGE_MAX_BYTES: 52428800
+      KAFKA_REPLICA_FETCH_MAX_BYTES: 52428800
+      KAFKA_SOCKET_REQUEST_MAX_BYTES: 52428800
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824
+      KAFKA_FETCH_MAX_BYTES: 52428800
+      KAFKA_MAX_REQUEST_SIZE: 52428800
       KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
       KAFKA_LISTENER_NAME_SASL_PLAINTEXT_SASL_ENABLED_MECHANISMS: PLAIN
       KAFKA_OPTS: "-Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf"
@@ -198,10 +224,14 @@ services:
     container_name: kafka-ui-multi
     environment:
       KAFKA_CLUSTERS_0_NAME: local-cluster
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: broker-riverseg-1:19092,broker-riverseg-2:19092,broker-riverseg-3:19092 # Use correct broker ports
-      DYNAMIC_CONFIG_ENABLED: "true" # Enable dynamic config
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: broker-riverseg-1:19092,broker-riverseg-2:19092,broker-riverseg-3:19092
+      DYNAMIC_CONFIG_ENABLED: "true"
     ports:
-      - "8080:8080" # Expose Kafka UI on port 8080
+      - "8080:8080"
+    depends_on:
+      - broker-riverseg-1
+      - broker-riverseg-2
+      - broker-riverseg-3
 
   river-segmentation:
     image: deepblue597/river-segmentation:latest
@@ -211,16 +241,12 @@ services:
       - TIMESCALE_ADDRESS=timescaledb
       - KAFKA_ADDRESS=broker-riverseg-3
       - KAFKA_PORT=19092
-      - KAFKA_CONSUMER_GROUP=river-segmentation-group
+      - KAFKA_CONSUMER_GROUP=river-seg-group
     depends_on:
       - timescaledb
       - minio
-      - controller-riverseg-1
-      - controller-riverseg-2
-      - controller-riverseg-3
       - broker-riverseg-1
       - broker-riverseg-2
       - broker-riverseg-3
-
+      - kafka-ui-multi
     restart: unless-stopped
-#TODO: Add network naming

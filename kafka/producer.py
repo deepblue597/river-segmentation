@@ -20,7 +20,10 @@ def create_kafka_producer(bootstrap_server, acks, linger_ms=0, batch_size=16 * 1
         # ' delivery.timeout.ms' : 120000 ( default 2 mins )
         # 'enable.idempotence': True (default)
         'linger.ms': linger_ms,  # Wait up to x ms for the batch to fill before sending default 0
-        'compression.type': compression_type  # None ( default )
+        'compression.type': compression_type,  # None ( default )
+        'message.max.bytes': 52428800,      # 50MB
+        
+        
     }
     
     # Add SASL configuration if required
