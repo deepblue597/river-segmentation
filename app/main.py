@@ -7,11 +7,14 @@ import tempfile
 from PIL import Image
 import io
 import sys
+import time
+
+sys.path.append(os.path.dirname('../connectors'))
 
 sys.path.append(os.path.dirname('../kafka'))
 
 from kafka.producer import create_kafka_producer, delivery_callback
-
+from connectors.minio_connector import MinIOConnector
 # Configure page
 st.set_page_config(
     page_title="River Segmentation Image Upload",
@@ -19,9 +22,21 @@ st.set_page_config(
     layout="wide"
 )
 
+minio_client = MinIOConnector(
+    address = 'localhost', 
+    access_key='minio',
+    secret_key='minio123',
+    port= 9000,
+    target='river'
+)
+minio_client.connect() 
+
 # Initialize session state
 if 'upload_history' not in st.session_state:
     st.session_state.upload_history = []
+
+# if 'upload_images' not in st.session_state:
+#     st.session_state.upload_images = [] 
 
 def create_message(image_file, filename):
     """Create Kafka message from uploaded image file"""
@@ -56,6 +71,20 @@ def send_to_kafka(producer, message, topic_name, message_id):
         return True, None
     except Exception as e:
         return False, str(e)
+    
+def get_predictions_from_minio(object_name,timeout=30, poll_interval=2):
+    """Retrieve predictions from MinIO"""
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        try:
+            data = minio_client.get_object(object_name)
+            if data:
+                return data
+        except Exception:
+            pass  # Object not ready yet
+        time.sleep(poll_interval)
+    return None
+
 
 def main():
     st.title("🌊 River Segmentation Image Upload")
@@ -84,6 +113,8 @@ def main():
         max_value=100, 
         value=10
     )
+    
+    
     
     # Main upload area
     col1, col2 = st.columns([2, 1])
@@ -126,6 +157,8 @@ def main():
                     upload_images(valid_files, bootstrap_server, topic_name)
             else:
                 st.error("No valid files to upload. Check file sizes.")
+            
+            
     
     with col2:
         st.header("📊 Upload History")
@@ -155,6 +188,17 @@ def main():
         col1.metric("Total Uploads", total_uploads)
         col2.metric("Successful", successful_uploads)
         col3.metric("Total Size", f"{total_size / (1024*1024):.2f} MB")
+        
+        col1, col2 = st.columns(2) 
+        with st.spinner("Waiting for model to process image..."):
+            with col1: 
+                image_bytes = get_predictions_from_minio(f'overlay/{st.session_state.upload_history[-1]["filename"]}')
+                image = Image.open(io.BytesIO(image_bytes))
+                st.image(image, caption=f"Overlay Image {st.session_state.upload_history[-1]["filename"]}")
+            with col2:
+                image_bytes = get_predictions_from_minio(f'predictions/{st.session_state.upload_history[-1]["filename"]}')
+                image = Image.open(io.BytesIO(image_bytes))
+                st.image(image, caption=f"Prediction Mask {st.session_state.upload_history[-1]["filename"]}")
 
 def upload_images(files, bootstrap_server, topic_name):
     """Upload images to Kafka with progress tracking"""
