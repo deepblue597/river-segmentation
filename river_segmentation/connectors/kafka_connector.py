@@ -1,6 +1,6 @@
 
 
-from connectors import Connector
+from river_segmentation.connectors import Connector
 from quixstreams import Application 
 from quixstreams.kafka import ConnectionConfig 
 

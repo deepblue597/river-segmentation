@@ -7,9 +7,9 @@ import segmentation_models_pytorch as smp
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
-from connectors.kafka_connector import KafkaConnector
-from connectors.minio_connector import MinIOConnector
-from connectors.timescale_connector import TimescaleConnector
+from river_segmentation.connectors.kafka_connector import KafkaConnector
+from river_segmentation.connectors.minio_connector import MinIOConnector
+from river_segmentation.connectors.timescale_connector import TimescaleConnector
 import base64
 
 

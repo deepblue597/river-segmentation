@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+
 class Connector(ABC):
     
     def __init__(self, address , port , target):

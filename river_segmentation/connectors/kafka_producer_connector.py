@@ -1,5 +1,5 @@
 
-from connectors import Connector
+from river_segmentation.connectors import Connector
 from confluent_kafka import Producer
 
 

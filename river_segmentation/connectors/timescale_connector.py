@@ -1,6 +1,6 @@
 
 from sqlalchemy import MetaData, Table, create_engine, text
-from connectors import Connector
+from river_segmentation.connectors import Connector
 
 
 class TimescaleConnector(Connector):

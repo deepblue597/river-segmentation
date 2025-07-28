@@ -2,9 +2,8 @@ import json
 from typing import Union
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 from fastapi import FastAPI, Request
-from connectors.minio_connector import MinIOConnector
+from river_segmentation.connectors import MinIOConnector
 import time
 from fastapi.responses import StreamingResponse
 import io
@@ -12,8 +11,7 @@ from fastapi import FastAPI, File, UploadFile, HTTPException
 import base64
 import requests
 from datetime import datetime
-#sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'connectors'))
-from connectors.kafka_producer_connector import KafkaProducerConnector
+from river_segmentation.connectors import KafkaProducerConnector
 
 app = FastAPI()
 

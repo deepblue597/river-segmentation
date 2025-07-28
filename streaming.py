@@ -1,5 +1,5 @@
 
-from models.model import RiverSegmentationModel
+from river_segmentation.models import RiverSegmentationModel
 import signal
 import sys
 import os
