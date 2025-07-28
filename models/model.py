@@ -262,12 +262,8 @@ class RiverSegmentationModel:
             alpha = 0.4  # Overlay transparency (40% green, 60% original)
             
             # Apply green overlay ONLY to water pixels
-            water_mask_3d = np.stack([prediction_mask, prediction_mask, prediction_mask], axis=-1)
-            overlay_image = np.where(
-                water_mask_3d == 1,
-                (overlay_image * (1 - alpha) + np.array(green_color) * alpha).astype(np.uint8),
-                overlay_image  # Keep original colors for non-water areas
-            )
+            
+            overlay_image = cv2.addWeighted(overlay_image, 1.0, green_color, alpha, 0)
 
             encoded_image = cv2.imencode('.png', overlay_image)[1].tobytes()
 

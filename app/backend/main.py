@@ -12,8 +12,8 @@ from fastapi import FastAPI, File, UploadFile, HTTPException
 import base64
 import requests
 from datetime import datetime
-
-from kafka.producer import create_kafka_producer, delivery_callback
+#sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'connectors'))
+from connectors.kafka_producer_connector import KafkaProducerConnector
 
 app = FastAPI()
 
@@ -29,8 +29,16 @@ minioClient = MinIOConnector(
     target='river'
 )
 
+kafkaClient = KafkaProducerConnector(
+    address='localhost',
+    port=39092,
+    topic='River',
+    acks='all',
+    compression_type='snappy'
+)
 
 minioClient.connect()
+kafkaClient.connect()
 
 @app.get("/get-location")
 async def get_location(request: Request):
@@ -130,20 +138,11 @@ async def upload_image(file: UploadFile = File(...),  request: Request = None):
             'lon': location['lon']
         }
         
-        producer = create_kafka_producer(
-                bootstrap_server='139.91.68.57:29092',
-                acks='all',
-                compression_type='snappy'
-            )
         
-        producer.produce(
-            'River',
-            value=json.dumps(message),
-            key=str(datetime.now().timestamp()),
-            callback=delivery_callback
+        kafkaClient.produce(
+            key=str(datetime.now().timestamp()),  # Use timestamp as key
+            value=json.dumps(message)
         )
-        producer.poll(0)
-        producer.flush()
         return {"status": "success", "message": "Image uploaded successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to upload image: {str(e)}")
