@@ -14,7 +14,7 @@ model = RiverSegmentationModel(
 model.load_model()
 
 model.minIOConnection(
-    address=os.environ.get("MINIO_ADDRESS", "linux-pc"), 
+    address=os.environ.get("MINIO_ADDRESS", "localhost"), 
     port=int(os.environ.get("MINIO_PORT", "9000")), 
     target=os.environ.get("MINIO_BUCKET", "river"),  # Added missing bucket name
     access_key=os.environ.get("MINIO_ACCESS_KEY", "minio"),
@@ -22,7 +22,7 @@ model.minIOConnection(
 )
 
 model.timescaleConnection(
-    address=os.environ.get("TIMESCALE_ADDRESS", "linux-pc"), 
+    address=os.environ.get("TIMESCALE_ADDRESS", "localhost"), 
     port=int(os.environ.get("TIMESCALE_PORT", "5432")),
     target=os.environ.get("TIMESCALE_DB", "river"),  # Changed from 'database' to 'target'
     username=os.environ.get("TIMESCALE_USER", "postgres"),
@@ -31,10 +31,10 @@ model.timescaleConnection(
 )
 
 model.kafkaConnection(
-    address=os.environ.get("KAFKA_ADDRESS", "linux-pc"),
+    address=os.environ.get("KAFKA_ADDRESS", "localhost"),
     port=int(os.environ.get("KAFKA_PORT", "39092")),
     topic=os.environ.get("KAFKA_TOPIC", "River"),  # Changed from 'target' to 'topic'
-    consumer_group=os.environ.get("KAFKA_CONSUMER_GROUP", "model-prediction-06"),
+    consumer_group=os.environ.get("KAFKA_CONSUMER_GROUP", "model-prediction-07"),
     auto_offset_reset=os.environ.get("KAFKA_AUTO_OFFSET_RESET", "earliest"),
     security_protocol=os.environ.get("KAFKA_SECURITY_PROTOCOL", "plaintext")
 )

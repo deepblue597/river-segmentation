@@ -36,7 +36,17 @@ minioClient.connect()
 async def get_location(request: Request):
     # Get client IP
     client_ip = request.client.host
-
+    
+    if client_ip in ['127.0.0.1', '::1', 'localhost']:
+        print("⚠️ Localhost detected, using default location")
+        return {
+            "ip": client_ip,
+            "country": "Development",
+            "region": "Local",
+            "city": "Localhost",
+            "lat": 40.7128,  # Default to NYC coordinates
+            "lon": -74.0060
+        }
     # Use an external API for geo lookup (e.g., ip-api.com, ipinfo.io, etc.)
     response = requests.get(f"http://ip-api.com/json/{client_ip}")
     
@@ -116,11 +126,12 @@ async def upload_image(file: UploadFile = File(...),  request: Request = None):
             'image': image_base64,
             'date': datetime.now().isoformat(),
             'file_size': len(image_data),
-            'location': location.get('ip', 'unknown')  # Use city as upload source
+            'lat': location['lat'],  # Use city as upload source, 
+            'lon': location['lon']
         }
         
         producer = create_kafka_producer(
-                bootstrap_server='localhost:29092',
+                bootstrap_server='139.91.68.57:29092',
                 acks='all',
                 compression_type='snappy'
             )

@@ -1,259 +1,408 @@
 import streamlit as st
-
 from datetime import datetime
 from PIL import Image
 import io
-
 import requests
+import time
 
-
-
-# Configure page
+# Configure page with professional styling
 st.set_page_config(
-    page_title="River Segmentation Image Upload",
+    page_title="River Segmentation AI Platform",
     page_icon="🌊",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# Backend API configuration
-BACKEND_URL = "http://localhost:8000"  # Update this to your backend URL
+# Custom CSS for professional styling
+st.markdown("""
+<style>
+    .main-header {
+        text-align: center;
+        padding: 2rem 0;
+        background: linear-gradient(90deg, #1e3c72 0%, #2a5298 100%);
+        color: white;
+        border-radius: 10px;
+        margin-bottom: 2rem;
+    }
+    
+    .status-card {
+        padding: 1rem;
+        border-radius: 8px;
+        margin: 0.5rem 0;
+        border-left: 4px solid;
+    }
+    
+    .status-success { border-left-color: #28a745; background: #f8fff9; }
+    .status-error { border-left-color: #dc3545; background: #fff8f8; }
+    .status-warning { border-left-color: #ffc107; background: #fffdf7; }
+    .status-info { border-left-color: #17a2b8; background: #f7fdff; }
+    
+    .processing-steps {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 8px;
+        margin: 1rem 0;
+    }
+</style>
+""", unsafe_allow_html=True)
 
+# Backend API configuration
+BACKEND_URL = "http://localhost:8000"
 
 # Initialize session state
 if 'upload_history' not in st.session_state:
     st.session_state.upload_history = []
-
-# if 'upload_images' not in st.session_state:
-#     st.session_state.upload_images = [] 
+if 'current_processing' not in st.session_state:
+    st.session_state.current_processing = None
 
 def upload_image_to_backend(file):
-    """Upload image to FastAPI backend"""
+    """Upload image to FastAPI backend with better error handling"""
     try:
         files = {"file": (file.name, file, file.type)}
-        response = requests.post(f"{BACKEND_URL}/upload_image/", files=files)
+        response = requests.post(f"{BACKEND_URL}/upload_image/", files=files, timeout=60)
         
         if response.status_code == 200:
             return True, response.json()
         else:
-            return False, response.json().get("detail", "Upload failed")
+            error_detail = response.json().get("detail", f"HTTP {response.status_code}")
+            return False, error_detail
+    except requests.exceptions.Timeout:
+        return False, "Upload timeout - please try again"
+    except requests.exceptions.ConnectionError:
+        return False, "Cannot connect to server - please check if backend is running"
     except Exception as e:
-        return False, str(e)
+        return False, f"Upload error: {str(e)}"
 
 def get_image_from_backend(object_name, timeout=30):
-    """Get processed image from backend"""
+    """Get processed image from backend with retries"""
     try:
-        response = requests.get(f"{BACKEND_URL}/get_image/{object_name}", params={"timeout": timeout})
+        response = requests.get(
+            f"{BACKEND_URL}/get_image/{object_name}", 
+            params={"timeout": timeout},
+            timeout=timeout + 5
+        )
         
         if response.status_code == 200:
             return response.content
         elif response.status_code == 404:
-            print(f"Image not found: {object_name}")
             return None
         else:
-            print(f"Error fetching {object_name}: Status {response.status_code}, Response: {response.text}")
+            st.error(f"Error fetching {object_name}: Status {response.status_code}")
             return None
     except Exception as e:
-        print(f"Exception fetching {object_name}: {e}")
-        return None    
+        st.error(f"Error fetching {object_name}: {str(e)}")
+        return None
 
+# def check_backend_health():
+#     """Check if backend is accessible"""
+#     try:
+#         response = requests.get(f"{BACKEND_URL}/health", timeout=5)
+#         return response.status_code == 200
+#     except:
+#         return False
 
-def main():
-    st.title("🌊 River Segmentation Image Upload")
-    st.markdown("Upload images to be processed by the river segmentation pipeline")
-    
-    # # Sidebar configuration
-    # st.sidebar.header("⚙️ Configuration")
+def render_header():
+    """Render professional header"""
+    st.markdown("""
+    <div class="main-header">
+        <h1>🌊 River Segmentation AI Platform</h1>
+        <p>Advanced water body detection using deep learning</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+# def render_sidebar():
+#     """Render professional sidebar with system info"""
+#     with st.sidebar:
+#         st.header("🎛️ System Status")
         
-    # # Kafka settings
-    # bootstrap_server = st.sidebar.text_input(
-    #     "Kafka Bootstrap Server", 
-    #     value="localhost:29092",
-    #     help="Kafka broker address"
-    # )
-    
-    # topic_name = st.sidebar.text_input(
-    #     "Kafka Topic", 
-    #     value="River",
-    #     help="Topic to send images to"
-    # )
-    
-    # # Upload settings
-    # max_file_size = st.sidebar.slider(
-    #     "Max File Size (MB)", 
-    #     min_value=1, 
-    #     max_value=100, 
-    #     value=10
-    # )
-    
-    
-    max_file_size = 50  # Set max file size to 50MB
-    # Main upload area
-    col1, col2 = st.columns([2, 1])
-    
-    with col1:
-        st.header("📁 Upload Images")
+#         # Backend health check
+#         if check_backend_health():
+#             st.success("🟢 Backend Online")
+#         else:
+#             st.error("🔴 Backend Offline")
+#             st.warning("Please start the backend server")
         
-        uploaded_files = st.file_uploader(
-            "Choose image files",
-            accept_multiple_files=False,
-            type=['png', 'jpg', 'jpeg', 'bmp', 'tiff'],
-            label_visibility="visible",
-            help=f"Maximum file size: {max_file_size}MB per file"
+#         st.header("⚙️ Settings")
+        
+#         max_file_size = st.slider(
+#             "Max File Size (MB)", 
+#             min_value=1, 
+#             max_value=50, 
+#             value=25,
+#             help="Maximum allowed file size for upload"
+#         )
+        
+#         timeout_setting = st.slider(
+#             "Processing Timeout (sec)", 
+#             min_value=30, 
+#             max_value=300, 
+#             value=60,
+#             help="How long to wait for processing results"
+#         )
+        
+#         st.header("📋 Supported Formats")
+#         st.markdown("""
+#         - **JPEG** (.jpg, .jpeg)
+#         - **PNG** (.png)
+#         - **TIFF** (.tiff)
+#         - **BMP** (.bmp)
+#         """)
+        
+#         if st.session_state.upload_history:
+#             st.header("🗑️ Data Management")
+#             if st.button("Clear History", type="secondary"):
+#                 st.session_state.upload_history = []
+#                 st.rerun()
+        
+#         return max_file_size, timeout_setting
+
+def render_upload_section(max_file_size):
+    """Render professional upload section"""
+    st.header("📤 Upload Image")
+    
+    # Upload area with drag & drop styling
+    uploaded_file = st.file_uploader(
+        "Drop your image here or click to browse",
+        accept_multiple_files=False,
+        type=['png', 'jpg', 'jpeg', 'bmp', 'tiff'],
+        help=f"Maximum file size: {max_file_size}MB"
+    )
+    
+    if uploaded_file:
+        # File validation
+        file_size_mb = uploaded_file.size / (1024 * 1024)
+        is_valid = file_size_mb <= max_file_size
+        
+        # Check if already uploaded
+        already_uploaded = any(
+            entry['filename'] == uploaded_file.name and entry['success'] 
+            for entry in st.session_state.upload_history
         )
         
-        if uploaded_files:
-            st.success(f"Selected {len(uploaded_files)} files")
+        # File info card
+        with st.container():
+            col1, col2, col3 = st.columns([2, 1, 1])
             
-            # Show file details
-            with st.expander("📋 File Details", expanded=True):
-                for i, file in enumerate(uploaded_files):
-                    file_size_mb = file.size / (1024 * 1024)
-                    status = "✅" if file_size_mb <= max_file_size else "❌ Too large"
-                    
-                    col_name, col_size, col_status = st.columns([3, 1, 1])
-                    col_name.write(f"{i+1}. {file.name}")
-                    col_size.write(f"{file_size_mb:.2f} MB")
-                    col_status.write(status)
+            with col1:
+                st.markdown(f"**📁 {uploaded_file.name}**")
+                if already_uploaded:
+                    st.markdown("🔄 *Previously uploaded*")
             
-            # Filter valid files
-            valid_files = [
-                f for f in uploaded_files 
-                if f.size / (1024 * 1024) <= max_file_size
-            ]
+            with col2:
+                st.markdown(f"**{file_size_mb:.2f} MB**")
             
-            if valid_files:
-                st.info(f"Ready to upload {len(valid_files)} valid files")
-                
-                # Upload button
-                if st.button("🚀 Send to Backend", type="primary", use_container_width=True):
-                    upload_images_to_backend(valid_files)
+            with col3:
+                if not is_valid:
+                    st.error("❌ Too large")
+                elif already_uploaded:
+                    st.warning("⚠️ Already Uploaded")
+                else:
+                    st.success("✅ Ready")
+        
+        # Action buttons
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if is_valid and not already_uploaded:
+                if st.button("🚀 Process Image", type="primary", use_container_width=True):
+                    process_image(uploaded_file)
+            elif already_uploaded:
+                if st.button("🔄 Process Again", type="secondary", use_container_width=True):
+                    process_image(uploaded_file)
             else:
-                st.error("No valid files to upload. Check file sizes.")
-            
-            
-    
-    with col2:
-        st.header("📊 Upload History")
+                st.button("❌ File Too Large", disabled=True, use_container_width=True)
         
-        if st.session_state.upload_history:
-            for entry in reversed(st.session_state.upload_history[-10:]):  # Last 10 entries
-                with st.container():
-                    status_icon = "✅" if entry['success'] else "❌"
-                    st.write(f"{status_icon} {entry['filename']}")
-                    st.caption(f"{entry['timestamp']} | {entry['size']}")
-                    if not entry['success']:
-                        st.error(f"Error: {entry['error']}")
-                    st.divider()
-        else:
-            st.info("No uploads yet")
-    
-    # Statistics
-    if st.session_state.upload_history:
-        st.header("📈 Statistics")
-        
-        col1, col2, col3 = st.columns(3)
-        
-        total_uploads = len(st.session_state.upload_history)
-        successful_uploads = sum(1 for entry in st.session_state.upload_history if entry['success'])
-        total_size = sum(entry.get('file_size', 0) for entry in st.session_state.upload_history)
-        
-        col1.metric("Total Uploads", total_uploads)
-        col2.metric("Successful", successful_uploads)
-        col3.metric("Total Size", f"{total_size / (1024*1024):.2f} MB")
-        
-        # Show results for last uploaded image
-        if successful_uploads > 0:
-            st.header("🔍 Latest Results")
-            last_successful = None
-            for entry in reversed(st.session_state.upload_history):
-                if entry['success']:
-                    last_successful = entry
-                    break
-            
-            if last_successful:
-                col1, col2 = st.columns(2)
-                
-                with st.spinner("Waiting for model to process image..."):
-                    with col1:
-                        st.subheader("🎨 Overlay")
-                        overlay_bytes = get_image_from_backend(f'overlay/{last_successful["filename"]}')
-                        if overlay_bytes:
-                            try:
-                                image = Image.open(io.BytesIO(overlay_bytes))
-                                st.image(image, caption=f"Overlay: {last_successful['filename']}")
-                            except Exception as e:
-                                st.error(f"Could not display overlay: {e}")
-                        else:
-                            st.warning("Overlay not ready yet")
-                    
-                    with col2:
-                        st.subheader("🎯 Prediction Mask")
-                        mask_bytes = get_image_from_backend(f'predictions/{last_successful["filename"]}')
-                        if mask_bytes:
-                            try:
-                                image = Image.open(io.BytesIO(mask_bytes))
-                                st.image(image, caption=f"Mask: {last_successful['filename']}")
-                            except Exception as e:
-                                st.error(f"Could not display mask: {e}")
-                        else:
-                            st.warning("Prediction mask not ready yet")
+        with col2:
+            if uploaded_file:
+                # Preview image
+                try:
+                    image = Image.open(uploaded_file)
+                    st.image(image, caption="Preview", use_container_width=True)
+                except Exception as e:
+                    st.error(f"Cannot preview: {e}")
 
-def upload_images_to_backend(files):
-    """Upload images to backend with progress tracking"""
+def process_image(file):
+    """Process image with professional progress tracking"""
+    st.session_state.current_processing = file.name
     
-    # Upload progress
+    # Processing steps
+    steps = [
+        ("📤 Uploading to server", 0.2),
+        ("🤖 AI model processing", 0.6),
+        ("🎨 Generating visualizations", 0.8),
+        ("✅ Finalizing results", 1.0)
+    ]
+    
     progress_bar = st.progress(0)
     status_text = st.empty()
     
-    success_count = 0
-    
-    for i, file in enumerate(files):
-        # Update progress
-        progress = (i + 1) / len(files)
-        progress_bar.progress(progress)
-        status_text.text(f"Uploading {file.name}... ({i+1}/{len(files)})")
+    try:
+        # Step 1: Upload
+        status_text.info("📤 Uploading image to server...")
+        file.seek(0)
+        success, result = upload_image_to_backend(file)
+        progress_bar.progress(0.2)
         
-        try:
-            # Reset file pointer
-            file.seek(0)
+        if success:
+            # Add to history
+            st.session_state.upload_history.append({
+                'filename': file.name,
+                'success': True,
+                'timestamp': datetime.now().strftime("%H:%M:%S"),
+                'size': f"{file.size / (1024*1024):.2f} MB",
+                'file_size': file.size,
+                'error': None
+            })
             
-            # Upload to backend
-            success, result = upload_image_to_backend(file)
+            # Simulate processing steps
+            for step_name, progress in steps[1:]:
+                status_text.info(step_name)
+                time.sleep(0.5)  # Simulate processing time
+                progress_bar.progress(progress)
             
-            if success:
-                success_count += 1
-                st.session_state.upload_history.append({
-                    'filename': file.name,
-                    'success': True,
-                    'timestamp': datetime.now().strftime("%H:%M:%S"),
-                    'size': f"{file.size / (1024*1024):.2f} MB",
-                    'file_size': file.size,
-                    'error': None
-                })
-            else:
-                st.session_state.upload_history.append({
-                    'filename': file.name,
-                    'success': False,
-                    'timestamp': datetime.now().strftime("%H:%M:%S"),
-                    'size': f"{file.size / (1024*1024):.2f} MB",
-                    'file_size': file.size,
-                    'error': str(result)
-                })
-                
-        except Exception as e:
-            st.error(f"Error processing {file.name}: {str(e)}")
+            status_text.success("🎉 Processing completed successfully!")
+            st.balloons()
+            
+        else:
+            # Add failed upload to history
+            st.session_state.upload_history.append({
+                'filename': file.name,
+                'success': False,
+                'timestamp': datetime.now().strftime("%H:%M:%S"),
+                'size': f"{file.size / (1024*1024):.2f} MB",
+                'file_size': file.size,
+                'error': str(result)
+            })
+            status_text.error(f"❌ Upload failed: {result}")
     
-    # Final status
-    progress_bar.progress(1.0)
-    status_text.text("Upload completed!")
+    except Exception as e:
+        status_text.error(f"❌ Processing error: {str(e)}")
     
-    if success_count == len(files):
-        st.success(f"🎉 Successfully uploaded all {success_count} images!")
-    else:
-        st.warning(f"⚠️ Uploaded {success_count}/{len(files)} images successfully")
+    finally:
+        st.session_state.current_processing = None
+        time.sleep(1)
+        st.rerun()
+
+def render_history_section():
+    """Render professional upload history"""
+    st.header("📊 Processing History")
     
-    # Auto-refresh to show updated history
-    st.rerun()
+    if not st.session_state.upload_history:
+        st.info("No uploads yet. Upload an image to get started!")
+        return
+    
+    # Statistics cards
+    col1, col2, col3, col4 = st.columns(4)
+    
+    total_uploads = len(st.session_state.upload_history)
+    successful_uploads = sum(1 for entry in st.session_state.upload_history if entry['success'])
+    failed_uploads = total_uploads - successful_uploads
+    total_size = sum(entry.get('file_size', 0) for entry in st.session_state.upload_history)
+    
+    with col1:
+        st.metric("Total Uploads", total_uploads)
+    with col2:
+        st.metric("Successful", successful_uploads, delta=f"{successful_uploads/total_uploads*100:.0f}%")
+    with col3:
+        st.metric("Failed", failed_uploads)
+    with col4:
+        st.metric("Total Size", f"{total_size / (1024*1024):.1f} MB")
+    
+    # Recent uploads
+    st.subheader("Recent Uploads")
+
+    
+    for entry in reversed(st.session_state.upload_history[-5:]):  # Last 5 entries
+        status_class = "status-success" if entry['success'] else "status-error"
+        status_icon = "✅" if entry['success'] else "❌"
+        
+        st.markdown(f"""
+        <div class="status-card {status_class}">
+            <strong>{status_icon} {entry['filename']}</strong><br>
+            <small>{entry['timestamp']} • {entry['size']}</small>
+            {f"<br><em>Error: {entry['error']}</em>" if not entry['success'] else ""}
+        </div>
+        """, unsafe_allow_html=True)
+
+
+
+def render_results_section(timeout_setting = 30 ):
+    """Render professional results section"""
+    if not st.session_state.upload_history:
+        return
+    
+    successful_uploads = [entry for entry in st.session_state.upload_history if entry['success']]
+    if not successful_uploads:
+        return
+    
+    st.header("🔍 Analysis Results")
+    
+    # Get latest successful upload
+    latest = successful_uploads[-1]
+    
+    st.markdown(f"""
+    <div class="processing-steps">
+        <h4>📋 Processing Pipeline</h4>
+        <p><strong>Image:</strong> {latest['filename']}</p>
+        <p><strong>Size:</strong> {latest['size']}</p>
+        <p><strong>Processed:</strong> {latest['timestamp']}</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Load results
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("🎨 Overlay Visualization")
+        st.info("💡 Green areas indicate detected water bodies")
+        
+        with st.spinner("Loading overlay..."):
+            overlay_bytes = get_image_from_backend(f'overlay/{latest["filename"]}', timeout_setting)
+        
+        if overlay_bytes:
+            try:
+                image = Image.open(io.BytesIO(overlay_bytes))
+                st.image(image, caption=f"Water Detection Overlay", use_container_width=True)
+            except Exception as e:
+                st.error(f"Display error: {e}")
+        else:
+            st.warning("⏳ Overlay not ready yet - processing may still be in progress")
+    
+    with col2:
+        st.subheader("🎯 Binary Mask")
+        st.info("💡 White = Water, Black = Land")
+        
+        with st.spinner("Loading prediction mask..."):
+            mask_bytes = get_image_from_backend(f'predictions/{latest["filename"]}', timeout_setting)
+        
+        if mask_bytes:
+            try:
+                image = Image.open(io.BytesIO(mask_bytes))
+                st.image(image, caption=f"Water Detection Mask", use_container_width=True)
+            except Exception as e:
+                st.error(f"Display error: {e}")
+        else:
+            st.warning("⏳ Mask not ready yet - processing may still be in progress")
+
+def main():
+    """Main application"""
+    render_header()
+    
+    # Sidebar
+    #max_file_size, timeout_setting = render_sidebar()
+    
+    # Main content
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        render_upload_section(50)
+        # render_results_section()
+    
+    with col2:
+        render_history_section()
+    
+        # Full-width analysis results section
+    render_results_section()
 
 if __name__ == "__main__":
     main()
