@@ -1,7 +1,4 @@
 import json
-from typing import Union
-import sys
-import os
 from fastapi import FastAPI, Request
 from river_segmentation.connectors import MinIOConnector
 import time

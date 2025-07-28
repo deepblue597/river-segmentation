@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+requests
+boto3
+numpy
+pillow
+sqlalchemy
+psycopg2-binary
+quixstreams
+river_segmentation  # if you want to install your package (or use -e . if local)
