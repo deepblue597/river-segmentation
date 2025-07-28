@@ -9,27 +9,40 @@ import base64
 import requests
 from datetime import datetime
 from river_segmentation.connectors import KafkaProducerConnector
+import os
 
 app = FastAPI()
+
+MINIO_ADDRESS = os.environ.get("MINIO_ADDRESS", "localhost")
+MINIO_PORT = int(os.environ.get("MINIO_PORT", 9000))
+MINIO_ACCESS_KEY = os.environ.get("MINIO_ACCESS_KEY", "minio")
+MINIO_SECRET_KEY = os.environ.get("MINIO_SECRET_KEY", "minio123")
+MINIO_BUCKET = os.environ.get("MINIO_BUCKET", "river")
+
+KAFKA_ADDRESS = os.environ.get("KAFKA_ADDRESS", "localhost")
+KAFKA_PORT = int(os.environ.get("KAFKA_PORT", 39092))
+KAFKA_TOPIC = os.environ.get("KAFKA_TOPIC", "River")
+KAFKA_ACKS = os.environ.get("KAFKA_ACKS", "all")
+KAFKA_COMPRESSION_TYPE = os.environ.get("KAFKA_COMPRESSION_TYPE", "snappy")
 
 @app.get("/")
 async def root():
     return {"message": "River Segmentation API is running", "status": "ok"}
 
 minioClient = MinIOConnector(
-    address='localhost',
-    port=9000,
-    access_key='minio',
-    secret_key='minio123',
-    target='river'
+    address=MINIO_ADDRESS,
+    port=MINIO_PORT,
+    access_key=MINIO_ACCESS_KEY,
+    secret_key= MINIO_SECRET_KEY ,
+    target= MINIO_BUCKET
 )
 
 kafkaClient = KafkaProducerConnector(
-    address='localhost',
-    port=39092,
-    topic='River',
-    acks='all',
-    compression_type='snappy'
+    address= KAFKA_ADDRESS,
+    port= KAFKA_PORT,
+    topic= KAFKA_TOPIC,
+    acks= KAFKA_ACKS,
+    compression_type= KAFKA_COMPRESSION_TYPE
 )
 
 minioClient.connect()
