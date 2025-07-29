@@ -258,7 +258,7 @@ class RiverSegmentationModel:
             overlay_image = original_image.copy().astype(np.float32)  # RGB format
 
             # Create green overlay only where water is detected
-            green_color = [0, 255, 0]  # BGR format for OpenCV
+            green_color = [0, 255, 0]  # RGB format for OpenCV
             alpha = 0.4  # Overlay transparency (40% green, 60% original)
             
             # Apply green overlay ONLY to water pixels

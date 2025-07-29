@@ -2,9 +2,6 @@ fastapi[standard]
 uvicorn
 requests
 boto3
-numpy
 pillow
-sqlalchemy
-psycopg2-binary
-quixstreams
-river-segmentation  
+python-multipart
+river-segmentation
