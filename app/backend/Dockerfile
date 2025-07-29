@@ -21,7 +21,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
     pip install --no-cache-dir -r requirements.txt
 
-RUN pip install .
+#RUN pip install .
 
 COPY . .
 
@@ -34,6 +34,7 @@ USER appuser
 
 # Set environment variables for configuration
 # Example Dockerfile additions
+# Do not use hardcoded values in production; use environment variables or secrets management
 ENV MINIO_ADDRESS=localhost
 ENV MINIO_PORT=9000
 ENV MINIO_ACCESS_KEY=minio

@@ -7,9 +7,9 @@ import segmentation_models_pytorch as smp
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
-from river_segmentation.connectors.kafka_connector import KafkaConnector
-from river_segmentation.connectors.minio_connector import MinIOConnector
-from river_segmentation.connectors.timescale_connector import TimescaleConnector
+from connectors.kafka_connector import KafkaConnector
+from connectors.minio_connector import MinIOConnector
+from connectors.timescale_connector import TimescaleConnector
 import base64
 
 
@@ -254,25 +254,12 @@ class RiverSegmentationModel:
                 content_type='image/png'
             )
             
-            # Create overlay image with proper water highlighting
-            overlay_image = original_image.copy().astype(np.float32)  # RGB format
+            # Create overlay image
+            overlay = original_image.copy()  
+            overlay[prediction_mask == 1] = [0, 255, 0]  # Green for water
+            blended_image = cv2.addWeighted(original_image, 0.7, overlay, 0.3, 0)  
 
-            # Create green overlay only where water is detected
-            green_color = [0, 255, 0]  # BGR format for OpenCV
-            alpha = 0.4  # Overlay transparency (40% green, 60% original)
-            
-            # Apply green overlay ONLY to water pixels
-            
-            water_mask_3d = np.stack([prediction_mask, prediction_mask, prediction_mask], axis=-1)
-            overlay_image = np.where(
-                water_mask_3d == 1,
-                (overlay_image * (1 - alpha) + np.array(green_color) * alpha).astype(np.uint8),
-                overlay_image  # Keep original colors for non-water areas
-            )
-            overlay_bgr = cv2.cvtColor(overlay_image.astype(np.uint8), cv2.COLOR_RGB2BGR)
-
-            encoded_image = cv2.imencode('.png', overlay_bgr)[1].tobytes()
-            
+            encoded_image = cv2.imencode('.png', blended_image)[1].tobytes()
 
             self.MinIOconnector.insert_object(
                 object_name=f'overlay/{X["filename"]}',

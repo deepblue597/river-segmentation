@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="river-segmentation",
-    version="0.1.0",
+    version="0.1.1",
     description="River segmentation pipeline with connectors and models as modules.",
     author="Your Name",
     packages=find_packages(),

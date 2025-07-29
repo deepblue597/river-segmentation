@@ -250,3 +250,17 @@ services:
       - broker-riverseg-3
       - kafka-ui-multi
     restart: unless-stopped
+
+  river-backend:
+    image: deepblue597/river-backend:latest
+    container_name: river-backend
+    environment:
+      - MINIO_ADDRESS=minio
+      - KAFKA_ADDRESS=broker-riverseg-1
+      - KAFKA_PORT=19092
+    ports:
+      - "8000:8000"
+    depends_on:
+      - minio
+      - broker-riverseg-1
+    restart: unless-stopped

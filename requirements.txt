@@ -8,4 +8,4 @@ sqlalchemy
 psycopg2-binary
 quixstreams
 numpy
--e .
+river-segmentation
