@@ -3,3 +3,5 @@
 /data
 *tar
 *png
+river_segmentation.egg-info/
+/build

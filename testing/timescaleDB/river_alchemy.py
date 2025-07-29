@@ -3,7 +3,7 @@ from sqlalchemy.dialects.postgresql import TIMESTAMP
 from mock_data import generate_mock_row
 from sqlalchemy import insert , select
 
-engine = create_engine('postgresql+psycopg2://postgres:password@139.91.68.57:5432/river')
+engine = create_engine('postgresql+psycopg2://postgres:password@localhost:5432/river')
 metadata = MetaData()
 
 river_segmentation = Table(

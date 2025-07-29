@@ -1,0 +1,7 @@
+fastapi[standard]
+uvicorn
+requests
+boto3
+pillow
+python-multipart
+river-segmentation
