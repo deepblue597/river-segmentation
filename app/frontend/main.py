@@ -4,6 +4,7 @@ from PIL import Image
 import io
 import requests
 import time
+import os 
 
 # Configure page with professional styling
 st.set_page_config(
@@ -47,7 +48,10 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Backend API configuration
-BACKEND_URL = "http://localhost:8000"
+
+BACKEND_IP = os.environ.get("BACKEND_IP", "localhost")
+BACKEND_PORT = int(os.environ.get("BACKEND_PORT", 8000))
+BACKEND_URL = f"http://{BACKEND_IP}:{BACKEND_PORT}"
 
 # Initialize session state
 if 'upload_history' not in st.session_state:
