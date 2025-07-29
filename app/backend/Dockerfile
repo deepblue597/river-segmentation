@@ -21,10 +21,16 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
     pip install --no-cache-dir -r requirements.txt
 
-COPY ../../river_segmentation ./river_segmentation
-COPY ../../setup.py .
-
 RUN pip install .
+
+COPY . .
+
+# Create a non-root user for security
+RUN useradd -m -u 1001 appuser && \
+    chown -R appuser:appuser /app && \
+    chmod -R 755 /app
+
+USER appuser
 
 # Set environment variables for configuration
 # Example Dockerfile additions
