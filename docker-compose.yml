@@ -264,3 +264,15 @@ services:
       - minio
       - broker-riverseg-1
     restart: unless-stopped
+
+  river-frontend:
+    image: deepblue597/river-frontend:latest
+    container_name: river-frontend
+    environment:
+      - BACKEND_IP=river-backend
+      - BACKEND_PORT=8000
+    ports:
+      - "8501:8501"
+    depends_on:
+      - river-backend
+    restart: unless-stopped

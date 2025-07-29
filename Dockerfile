@@ -24,7 +24,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
     pip install --no-cache-dir -r requirements.txt
 
-RUN pip install .
+#RUN pip install .
 # Copy application code and model
 COPY . .
 
