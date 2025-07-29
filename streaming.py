@@ -1,4 +1,3 @@
-
 from river_segmentation.models import RiverSegmentationModel
 import signal
 import sys
@@ -14,19 +13,21 @@ model = RiverSegmentationModel(
 model.load_model()
 
 model.minIOConnection(
-    address=os.environ.get("MINIO_ADDRESS", "localhost"), 
-    port=int(os.environ.get("MINIO_PORT", "9000")), 
+    address=os.environ.get("MINIO_ADDRESS", "localhost"),
+    port=int(os.environ.get("MINIO_PORT", "9000")),
     target=os.environ.get("MINIO_BUCKET", "river"),  # Added missing bucket name
     access_key=os.environ.get("MINIO_ACCESS_KEY", "minio"),
-    secret_key=os.environ.get("MINIO_SECRET_KEY", "minio123")
+    secret_key=os.environ.get("MINIO_SECRET_KEY", "minio123"),
 )
 
 model.timescaleConnection(
-    address=os.environ.get("TIMESCALE_ADDRESS", "localhost"), 
+    address=os.environ.get("TIMESCALE_ADDRESS", "localhost"),
     port=int(os.environ.get("TIMESCALE_PORT", "5432")),
-    target=os.environ.get("TIMESCALE_DB", "river"),  # Changed from 'database' to 'target'
+    target=os.environ.get(
+        "TIMESCALE_DB", "river"
+    ),  # Changed from 'database' to 'target'
     username=os.environ.get("TIMESCALE_USER", "postgres"),
-    password=os.environ.get("TIMESCALE_PASSWORD", "password"), 
+    password=os.environ.get("TIMESCALE_PASSWORD", "password"),
     table_name=os.environ.get("TIMESCALE_TABLE", "river_segmentation"),
 )
 
@@ -36,10 +37,11 @@ model.kafkaConnection(
     topic=os.environ.get("KAFKA_TOPIC", "River"),  # Changed from 'target' to 'topic'
     consumer_group=os.environ.get("KAFKA_CONSUMER_GROUP", "model-prediction-07"),
     auto_offset_reset=os.environ.get("KAFKA_AUTO_OFFSET_RESET", "earliest"),
-    security_protocol=os.environ.get("KAFKA_SECURITY_PROTOCOL", "plaintext")
+    security_protocol=os.environ.get("KAFKA_SECURITY_PROTOCOL", "plaintext"),
 )
 
 print(f"Model loaded: {model}")
+
 
 def graceful_shutdown(signum, frame):
     """Handle graceful shutdown when Ctrl+C is pressed"""
@@ -48,8 +50,9 @@ def graceful_shutdown(signum, frame):
     print("Exiting...")
     sys.exit(0)
 
+
 # Register signal handlers
-signal.signal(signal.SIGINT, graceful_shutdown)   # Ctrl+C
+signal.signal(signal.SIGINT, graceful_shutdown)  # Ctrl+C
 signal.signal(signal.SIGTERM, graceful_shutdown)  # Termination signal
 
 if __name__ == "__main__":
@@ -66,4 +69,4 @@ if __name__ == "__main__":
     finally:
         # This ensures cleanup happens no matter how the app exits
         print("Performing cleanup...")
-        model.disconnect_all()   
+        model.disconnect_all()

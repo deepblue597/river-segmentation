@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 
+
 class LocationResponse(BaseModel):
     ip: str
     country: str
@@ -8,16 +9,18 @@ class LocationResponse(BaseModel):
     lat: float
     lon: float
 
+
 class ImageUploadResponse(BaseModel):
     status: str
     message: str
+
 
 class ObjectResponse(BaseModel):
     key: str
     size: int
     last_modified: str
-    
+
+
 class DebugListObjectsResponse(BaseModel):
     objects: list[ObjectResponse]
     count: int
-

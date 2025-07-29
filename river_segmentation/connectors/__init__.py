@@ -9,5 +9,5 @@ __all__ = [
     "MinIOConnector",
     "KafkaConnector",
     "TimescaleConnector",
-    "KafkaProducerConnector"
+    "KafkaProducerConnector",
 ]
