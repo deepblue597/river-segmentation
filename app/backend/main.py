@@ -10,6 +10,7 @@ import requests
 from datetime import datetime
 from river_segmentation.connectors import KafkaProducerConnector
 import os
+from response_models import *
 
 app = FastAPI()
 
@@ -48,7 +49,7 @@ kafkaClient = KafkaProducerConnector(
 minioClient.connect()
 kafkaClient.connect()
 
-@app.get("/get-location")
+@app.get("/get-location" , response_model=LocationResponse)
 async def get_location(request: Request):
     # Get client IP
     client_ip = request.client.host
@@ -68,14 +69,16 @@ async def get_location(request: Request):
     
     if response.status_code == 200:
         data = response.json()
-        return {
-            "ip": client_ip,
-            "country": data.get("country"),
-            "region": data.get("regionName"),
-            "city": data.get("city"),
-            "lat": data.get("lat"),
-            "lon": data.get("lon")
-        }
+        res = LocationResponse(
+            ip= client_ip,
+            country = data.get("country"),
+            region = data.get("regionName"),
+            city = data.get("city"),
+            lat = data.get("lat"),
+            lon = data.get("lon")
+        )
+        return res
+
     else:
         return {"error": "Could not get location"}
 
