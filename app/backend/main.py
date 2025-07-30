@@ -57,16 +57,22 @@ async def get_location(request: Request):
     # Get client IP
     client_ip = request.client.host
 
+    # Try to get real client IP if behind a proxy
+    x_forwarded_for = request.headers.get("x-forwarded-for")
+    if x_forwarded_for:
+        client_ip = x_forwarded_for.split(",")[0].strip()
+
     if client_ip in ["127.0.0.1", "::1", "localhost"]:
         print("⚠️ Localhost detected, using default location")
-        return {
-            "ip": client_ip,
-            "country": "Development",
-            "region": "Local",
-            "city": "Localhost",
-            "lat": 40.7128,  # Default to NYC coordinates
-            "lon": -74.0060,
-        }
+        res = LocationResponse(
+            ip=client_ip,
+            country="Development",
+            region="Local",
+            city="Localhost",
+            lat=40.7128,  # Default to NYC coordinates
+            lon=-74.0060,
+        )
+        return res
     # Use an external API for geo lookup (e.g., ip-api.com, ipinfo.io, etc.)
     response = requests.get(f"http://ip-api.com/json/{client_ip}")
 
@@ -170,7 +176,7 @@ async def upload_image(file: UploadFile = File(...), request: Request = None):
 
         kafkaClient.produce(
             key=str(datetime.now().timestamp()),  # Use timestamp as key
-            value=json.dumps(message),
+            value=json.dumps(message.model_dump_json()),
         )
         return {"status": "success", "message": "Image uploaded successfully"}
     except Exception as e:

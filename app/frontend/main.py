@@ -105,15 +105,6 @@ def get_image_from_backend(object_name, timeout=30):
         return None
 
 
-# def check_backend_health():
-#     """Check if backend is accessible"""
-#     try:
-#         response = requests.get(f"{BACKEND_URL}/health", timeout=5)
-#         return response.status_code == 200
-#     except:
-#         return False
-
-
 def render_header():
     """Render professional header"""
     st.markdown(
@@ -126,52 +117,6 @@ def render_header():
         unsafe_allow_html=True,
     )
 
-
-# def render_sidebar():
-#     """Render professional sidebar with system info"""
-#     with st.sidebar:
-#         st.header("🎛️ System Status")
-
-#         # Backend health check
-#         if check_backend_health():
-#             st.success("🟢 Backend Online")
-#         else:
-#             st.error("🔴 Backend Offline")
-#             st.warning("Please start the backend server")
-
-#         st.header("⚙️ Settings")
-
-#         max_file_size = st.slider(
-#             "Max File Size (MB)",
-#             min_value=1,
-#             max_value=50,
-#             value=25,
-#             help="Maximum allowed file size for upload"
-#         )
-
-#         timeout_setting = st.slider(
-#             "Processing Timeout (sec)",
-#             min_value=30,
-#             max_value=300,
-#             value=60,
-#             help="How long to wait for processing results"
-#         )
-
-#         st.header("📋 Supported Formats")
-#         st.markdown("""
-#         - **JPEG** (.jpg, .jpeg)
-#         - **PNG** (.png)
-#         - **TIFF** (.tiff)
-#         - **BMP** (.bmp)
-#         """)
-
-#         if st.session_state.upload_history:
-#             st.header("🗑️ Data Management")
-#             if st.button("Clear History", type="secondary"):
-#                 st.session_state.upload_history = []
-#                 st.rerun()
-
-#         return max_file_size, timeout_setting
 
 
 def render_upload_section(max_file_size):
@@ -439,20 +384,16 @@ def main():
     """Main application"""
     render_header()
 
-    # Sidebar
-    # max_file_size, timeout_setting = render_sidebar()
-
     # Main content
     col1, col2 = st.columns([2, 1])
 
     with col1:
         render_upload_section(50)
-        # render_results_section()
 
     with col2:
         render_history_section()
 
-        # Full-width analysis results section
+    # Full-width analysis results section
     render_results_section()
 
 
