@@ -24,3 +24,11 @@ class ObjectResponse(BaseModel):
 class DebugListObjectsResponse(BaseModel):
     objects: list[ObjectResponse]
     count: int
+
+class KafkaMessage(BaseModel):
+    filename: str
+    image: bytes
+    date: str
+    file_size: int
+    lat: float
+    lon: float

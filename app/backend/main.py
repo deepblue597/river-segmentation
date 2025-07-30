@@ -103,7 +103,8 @@ async def list_objects():
                         "last_modified": obj["LastModified"].isoformat(),
                     }
                 )
-        return {"objects": objects, "count": len(objects)}
+        res = DebugListObjectsResponse(objects=objects, count=len(objects))
+        return res
     except Exception as e:
         return {"error": f"Failed to list objects: {str(e)}"}
 
@@ -150,14 +151,22 @@ async def upload_image(file: UploadFile = File(...), request: Request = None):
         location = await get_location(request)  # Get location data
         # print(image_base64)
         # Create message
-        message = {
-            "filename": file.filename,
-            "image": image_base64,
-            "date": datetime.now().isoformat(),
-            "file_size": len(image_data),
-            "lat": location["lat"],  # Use city as upload source,
-            "lon": location["lon"],
-        }
+        message = KafkaMessage(
+            filename=file.filename,
+            image=image_base64,
+            date=datetime.now().isoformat(),
+            file_size=len(image_data),
+            lat=location.lat,  # Use lat from location
+            lon=location.lon,  # Use lon from location
+        )
+        # message = {
+        #     "filename": file.filename,
+        #     "image": image_base64,
+        #     "date": datetime.now().isoformat(),
+        #     "file_size": len(image_data),
+        #     "lat": location["lat"],  # Use city as upload source,
+        #     "lon": location["lon"],
+        # }
 
         kafkaClient.produce(
             key=str(datetime.now().timestamp()),  # Use timestamp as key
