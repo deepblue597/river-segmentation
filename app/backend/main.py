@@ -11,6 +11,7 @@ from datetime import datetime
 from river_segmentation.connectors import KafkaProducerConnector
 import os
 from response_models import *
+import httpx
 
 app = FastAPI()
 
@@ -56,40 +57,87 @@ kafkaClient.connect()
 async def get_location(request: Request):
     # Get client IP
     client_ip = request.client.host
-
+    
     # Try to get real client IP if behind a proxy
     x_forwarded_for = request.headers.get("x-forwarded-for")
     if x_forwarded_for:
         client_ip = x_forwarded_for.split(",")[0].strip()
-
-    if client_ip in ["127.0.0.1", "::1", "localhost"]:
-        print("⚠️ Localhost detected, using default location")
-        res = LocationResponse(
+    
+    # Handle localhost/private IPs
+    if client_ip in ["127.0.0.1", "::1", "localhost"] or client_ip.startswith("192.168.") or client_ip.startswith("10."):
+        print("⚠️ Local/private IP detected, using default location")
+        return LocationResponse(
             ip=client_ip,
             country="Development",
             region="Local",
             city="Localhost",
-            lat=40.7128,  # Default to NYC coordinates
+            lat=40.7128,
             lon=-74.0060,
         )
-        return res
-    # Use an external API for geo lookup (e.g., ip-api.com, ipinfo.io, etc.)
-    response = requests.get(f"http://ip-api.com/json/{client_ip}")
-
-    if response.status_code == 200:
-        data = response.json()
-        res = LocationResponse(
-            ip=client_ip,
-            country=data.get("country"),
-            region=data.get("regionName"),
-            city=data.get("city"),
-            lat=data.get("lat"),
-            lon=data.get("lon"),
-        )
-        return res
-
-    else:
-        return {"error": "Could not get location"}
+    
+    try:
+        # Use async HTTP client with timeout
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(f"http://ip-api.com/json/{client_ip}")
+            
+        if response.status_code == 200:
+            data = response.json()
+            
+            # Check if the API returned an error
+            if data.get("status") == "fail":
+                print(f"❌ Location lookup failed: {data.get('message', 'Unknown error')}")
+                return LocationResponse(
+                    ip='0.0.0.0',
+                    country= "Unknown",
+                    region="Unknown",
+                    city="Unknown",
+                    lat= 0.0,
+                    lon=0.0,
+                )
+                #raise HTTPException(status_code=400, detail=f"Location lookup failed: {data.get('message', 'Unknown error')}")
+            
+            return LocationResponse(
+                ip=client_ip,
+                country=data.get("country", "Unknown"),
+                region=data.get("regionName", "Unknown"),
+                city=data.get("city", "Unknown"),
+                lat=float(data.get("lat", 0.0)),
+                lon=float(data.get("lon", 0.0)),
+            )
+        else:
+            print(f"❌ Location service returned status {response.status_code}")
+            return LocationResponse(
+                ip='0.0.0.0',
+                country= "Unknown",
+                region="Unknown",
+                city="Unknown",
+                lat= 0.0,
+                lon=0.0,
+            )
+            #raise HTTPException(status_code=503, detail="Location service unavailable")
+            
+    except httpx.TimeoutException:
+        print("❌ Location lookup timed out")
+        return LocationResponse(
+                ip='0.0.0.0',
+                country= "Unknown",
+                region="Unknown",
+                city="Unknown",
+                lat= 0.0,
+                lon=0.0,
+            )
+        #HTTPException(status_code=504, detail="Location lookup timeout")
+    except Exception as e:
+        print(f"Location lookup error: {e}")
+        return LocationResponse(
+                ip='0.0.0.0',
+                country= "Unknown",
+                region="Unknown",
+                city="Unknown",
+                lat= 0.0,
+                lon=0.0,
+            )
+        #raise HTTPException(status_code=500, detail="Could not determine location")
 
 
 @app.get("/debug/list_objects")
@@ -157,26 +205,26 @@ async def upload_image(file: UploadFile = File(...), request: Request = None):
         location = await get_location(request)  # Get location data
         # print(image_base64)
         # Create message
-        message = KafkaMessage(
-            filename=file.filename,
-            image=image_base64,
-            date=datetime.now().isoformat(),
-            file_size=len(image_data),
-            lat=location.lat,  # Use lat from location
-            lon=location.lon,  # Use lon from location
-        )
-        # message = {
-        #     "filename": file.filename,
-        #     "image": image_base64,
-        #     "date": datetime.now().isoformat(),
-        #     "file_size": len(image_data),
-        #     "lat": location["lat"],  # Use city as upload source,
-        #     "lon": location["lon"],
-        # }
+        # message = KafkaMessage(
+        #     filename=file.filename,
+        #     image=image_base64,
+        #     date=datetime.now().isoformat(),
+        #     file_size=len(image_data),
+        #     lat=location.lat,  # Use lat from location
+        #     lon=location.lon,  # Use lon from location
+        # )
+        message = {
+            "filename": file.filename,
+            "image": image_base64,
+            "date": datetime.now().isoformat(),
+            "file_size": len(image_data),
+            "lat": location.lat,  # Use city as upload source,
+            "lon": location.lon,
+        }
 
         kafkaClient.produce(
             key=str(datetime.now().timestamp()),  # Use timestamp as key
-            value=json.dumps(message.model_dump_json()),
+            value=json.dumps(message),
         )
         return {"status": "success", "message": "Image uploaded successfully"}
     except Exception as e:
