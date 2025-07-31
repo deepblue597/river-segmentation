@@ -5,4 +5,4 @@
 *png
 river_segmentation.egg-info/
 /build
-*env
+/environment_variables

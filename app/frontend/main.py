@@ -338,6 +338,8 @@ def render_results_section(timeout_setting=30):
 
     # Load results
     col1, col2 = st.columns(2)
+    col3, col4 = st.columns(2)
+
 
     with col1:
         st.subheader("🎨 Overlay Visualization")
@@ -378,6 +380,32 @@ def render_results_section(timeout_setting=30):
                 st.error(f"Display error: {e}")
         else:
             st.warning("⏳ Mask not ready yet - processing may still be in progress")
+
+    with col3:
+        st.subheader("🖼️ Original Image")
+        orig_bytes = get_image_from_backend(f"originals/{latest['filename']}", timeout_setting)
+        if orig_bytes:
+            try:
+                image = Image.open(io.BytesIO(orig_bytes))
+                st.image(image, caption="Original Image", use_container_width=True)
+            except Exception as e:
+                st.error(f"Display error: {e}")
+        else:
+            st.warning("⏳ Original image not ready yet.")
+
+    # Add two more images (example: confidence map and original)
+    with col4:
+        st.subheader("📈 Confidence Map")
+        conf_bytes = get_image_from_backend(f"confidence_maps/{latest['filename']}", timeout_setting)
+        if conf_bytes:
+            try:
+                image = Image.open(io.BytesIO(conf_bytes))
+                st.image(image, caption="Confidence Map", use_container_width=True)
+            except Exception as e:
+                st.error(f"Display error: {e}")
+        else:
+            st.warning("⏳ Confidence map not ready yet.")
+
 
 
 def main():
