@@ -1,8 +1,7 @@
 # Ignore everything except connectors/, models/, streaming.py, model weights, and requirements
 
-*
 
 !streaming.py
 !best_model.pth.tar
 !requirements.txt
-!setup.py
+#!setup.py

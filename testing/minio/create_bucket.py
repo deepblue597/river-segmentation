@@ -9,11 +9,11 @@ bucket_name = "river"
 
 # Create S3 client for MinIO
 s3_client = boto3.client(
-    's3',
+    "s3",
     endpoint_url=minio_endpoint,
     aws_access_key_id=access_key,
     aws_secret_access_key=secret_key,
-    region_name='eu-west-2'
+    region_name="eu-west-2",
 )
 
 try:
@@ -21,7 +21,7 @@ try:
     s3_client.create_bucket(Bucket=bucket_name)
     print(f"✅ Bucket '{bucket_name}' created successfully!")
 except ClientError as e:
-    if e.response['Error']['Code'] == 'BucketAlreadyOwnedByYou':
+    if e.response["Error"]["Code"] == "BucketAlreadyOwnedByYou":
         print(f"✅ Bucket '{bucket_name}' already exists!")
     else:
         print(f"❌ Error creating bucket: {e}")
@@ -30,7 +30,7 @@ except ClientError as e:
 try:
     buckets = s3_client.list_buckets()
     print("\n📁 Available buckets:")
-    for bucket in buckets['Buckets']:
+    for bucket in buckets["Buckets"]:
         print(f"  - {bucket['Name']}")
 except ClientError as e:
     print(f"❌ Error listing buckets: {e}")

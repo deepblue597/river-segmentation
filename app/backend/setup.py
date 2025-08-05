@@ -16,6 +16,6 @@ setup(
         "sqlalchemy",
         "psycopg2-binary",
         "quixstreams",
-],  # You can add requirements here or use requirements.txt
+    ],  # You can add requirements here or use requirements.txt
     python_requires=">=3.8",
 )

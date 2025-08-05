@@ -1,6 +1,7 @@
 from datetime import datetime
 import random
 
+
 # Example function to generate a single mock row
 def generate_mock_row():
     timestamp = datetime.now()
@@ -15,15 +16,14 @@ def generate_mock_row():
     location = random.choice(["RiverA", "RiverB", "RiverC"])
 
     return {
-        'timestamp': timestamp,
-        'image_name': image_name,
-        'water_coverage_pct': water_coverage_pct,
-        'avg_confidence': avg_confidence,
-        'iou_score': iou_score,
-        'dice_score': dice_score,
-        'overflow_detected': overflow_detected,
-        'processing_time_ms': processing_time_ms,
-        'model_version': model_version,
-        'location': location
+        "timestamp": timestamp,
+        "image_name": image_name,
+        "water_coverage_pct": water_coverage_pct,
+        "avg_confidence": avg_confidence,
+        "iou_score": iou_score,
+        "dice_score": dice_score,
+        "overflow_detected": overflow_detected,
+        "processing_time_ms": processing_time_ms,
+        "model_version": model_version,
+        "location": location,
     }
-    
