@@ -5,7 +5,6 @@ import time
 from fastapi.responses import StreamingResponse
 import io
 from fastapi import File, UploadFile, HTTPException
-import base64
 import requests
 from datetime import datetime
 from river_segmentation.connectors import KafkaProducerConnector
@@ -163,10 +162,90 @@ async def list_objects():
         return {"error": f"Failed to list objects: {str(e)}"}
 
 
+@app.get("/get_image_by_filename/{filename}")
+async def get_image_by_filename(filename: str):
+    """Get an uploaded image by its original filename (searches in uploads/ folder)"""
+    try:
+        # List all objects in uploads/ folder
+        response = minioClient.s3_client.list_objects_v2(
+            Bucket=minioClient.target,
+            Prefix="uploads/"
+        )
+        
+        if "Contents" in response:
+            # Find the most recent upload with this filename
+            matching_objects = []
+            for obj in response["Contents"]:
+                # Extract the original filename from the object key
+                # Format is: uploads/{timestamp}_{original_filename}
+                object_key = obj["Key"]
+                if object_key.startswith("uploads/") and "_" in object_key:
+                    # Split by underscore to get the filename part
+                    # Example: "uploads/1724854321000_image.jpg" -> "image.jpg"
+                    underscore_index = object_key.find("_", len("uploads/"))
+                    if underscore_index != -1:
+                        extracted_filename = object_key[underscore_index + 1:]
+                        if extracted_filename == filename:
+                            matching_objects.append(obj)
+            
+            if matching_objects:
+                # Get the most recently uploaded file (highest timestamp)
+                most_recent = max(matching_objects, key=lambda x: x["LastModified"])
+                object_name = most_recent["Key"]
+                
+                # Get the image data
+                data = minioClient.get_object(object_name)
+                
+                if data and len(data) > 0:
+                    # Determine media type based on file extension
+                    def get_media_type(filename: str) -> str:
+                        extension = filename.lower().split('.')[-1] if '.' in filename else 'png'
+                        media_types = {
+                            'png': 'image/png',
+                            'jpg': 'image/jpeg',
+                            'jpeg': 'image/jpeg',
+                            'gif': 'image/gif',
+                            'webp': 'image/webp',
+                            'bmp': 'image/bmp',
+                            'tiff': 'image/tiff',
+                            'svg': 'image/svg+xml'
+                        }
+                        return media_types.get(extension, 'image/png')
+                    
+                    media_type = get_media_type(filename)
+                    return StreamingResponse(io.BytesIO(data), media_type=media_type)
+                else:
+                    raise HTTPException(status_code=404, detail=f"Image file '{filename}' is empty")
+            else:
+                raise HTTPException(status_code=404, detail=f"Image with filename '{filename}' not found")
+        else:
+            raise HTTPException(status_code=404, detail="No uploaded images found")
+            
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve image: {str(e)}")
+
+
 @app.get("/get_image/{object_name:path}")
 async def get_image(object_name: str, timeout: int = 30):
     start = time.time()
     print(f"Fetching image: {object_name} with timeout: {timeout} seconds")
+
+    # Determine media type based on file extension
+    def get_media_type(filename: str) -> str:
+        extension = filename.lower().split('.')[-1] if '.' in filename else 'png'
+        media_types = {
+            'png': 'image/png',
+            'jpg': 'image/jpeg',
+            'jpeg': 'image/jpeg',
+            'gif': 'image/gif',
+            'webp': 'image/webp',
+            'bmp': 'image/bmp',
+            'tiff': 'image/tiff',
+            'svg': 'image/svg+xml'
+        }
+        return media_types.get(extension, 'image/png')
 
     while time.time() - start < timeout:
         try:
@@ -177,7 +256,8 @@ async def get_image(object_name: str, timeout: int = 30):
                 print(
                     f"Successfully fetched image: {object_name}, size: {len(data)} bytes"
                 )
-                return StreamingResponse(io.BytesIO(data), media_type="image/png")
+                media_type = get_media_type(object_name)
+                return StreamingResponse(io.BytesIO(data), media_type=media_type)
             else:
                 print(f"Object {object_name} exists but is empty")
 
@@ -199,33 +279,42 @@ async def upload_image(file: UploadFile = File(...), request: Request = None):
     try:
         # Read file content
         image_data = await file.read()
-
-        # Upload to Kafka
-        image_base64 = base64.b64encode(image_data).decode("utf-8")
-        location = await get_location(request)  # Get location data
-        # print(image_base64)
-        # Create message
-        # message = KafkaMessage(
-        #     filename=file.filename,
-        #     image=image_base64,
-        #     date=datetime.now().isoformat(),
-        #     file_size=len(image_data),
-        #     lat=location.lat,  # Use lat from location
-        #     lon=location.lon,  # Use lon from location
-        # )
-        message = {
-            "filename": file.filename,
-            "image": image_base64,
-            "date": datetime.now().isoformat(),
-            "file_size": len(image_data),
-            "lat": location.lat,  # Use city as upload source,
-            "lon": location.lon,
-        }
-
-        kafkaClient.produce(
-            key=str(datetime.now().timestamp()),  # Use timestamp as key
-            value=json.dumps(message),
+        
+        # Generate a unique object name using timestamp and original filename
+        timestamp = str(int(datetime.now().timestamp() * 1000))  # milliseconds for uniqueness
+        file_extension = file.filename.split('.')[-1] if '.' in file.filename else 'png'
+        object_name = f"uploads/{timestamp}_{file.filename}"
+        
+        # Upload image to MinIO
+        minioClient.insert_object(
+            object_name=object_name,
+            data=image_data,
+            content_type=file.content_type or "image/png"
         )
-        return {"status": "success", "message": "Image uploaded successfully"}
+        
+        # Get location data
+        location = await get_location(request)
+        
+        # Create message with image link instead of image data
+        message = KafkaMessage(
+            filename=file.filename,
+            image_link=object_name,  # MinIO object path
+            date=datetime.now().isoformat(),
+            file_size=len(image_data),
+            lat=location.lat,
+            lon=location.lon,
+        )
+
+        # Send message to Kafka
+        kafkaClient.produce(
+            key=timestamp,  # Use timestamp as key
+            value=message.model_dump_json(),
+        )
+        
+        return {
+            "status": "success", 
+            "message": "Image uploaded successfully",
+            "object_name": object_name
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to upload image: {str(e)}")

@@ -27,7 +27,7 @@ class DebugListObjectsResponse(BaseModel):
 
 class KafkaMessage(BaseModel):
     filename: str
-    image: bytes
+    image_link: str
     date: str
     file_size: int
     lat: float

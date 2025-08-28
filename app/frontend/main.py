@@ -103,6 +103,26 @@ def get_image_from_backend(object_name, timeout=30):
     except Exception as e:
         st.error(f"Error fetching {object_name}: {str(e)}")
         return None
+    
+def get_original_image_from_backend(object_name, timeout=30):
+    """Get processed image from backend with retries"""
+    try:
+        response = requests.get(
+            f"{BACKEND_URL}/get_image_by_filename/{object_name}",
+            params={"timeout": timeout},
+            timeout=timeout + 5,
+        )
+
+        if response.status_code == 200:
+            return response.content
+        elif response.status_code == 404:
+            return None
+        else:
+            st.error(f"Error fetching {object_name}: Status {response.status_code}")
+            return None
+    except Exception as e:
+        st.error(f"Error fetching {object_name}: {str(e)}")
+        return None
 
 
 def render_header():
@@ -383,7 +403,11 @@ def render_results_section(timeout_setting=30):
 
     with col3:
         st.subheader("🖼️ Original Image")
-        orig_bytes = get_image_from_backend(f"originals/{latest['filename']}", timeout_setting)
+        orig_bytes = get_image_from_backend(
+                f"originals/{latest['filename']}", timeout_setting
+            )
+        # If we want to fetch the original image (not the processed from model)
+        #orig_bytes = get_original_image_from_backend(latest['filename'], timeout_setting)
         if orig_bytes:
             try:
                 image = Image.open(io.BytesIO(orig_bytes))

@@ -10,7 +10,6 @@ from albumentations.pytorch import ToTensorV2
 from river_segmentation.connectors.kafka_connector import KafkaConnector
 from river_segmentation.connectors.minio_connector import MinIOConnector
 from river_segmentation.connectors.timescale_connector import TimescaleConnector
-import base64
 
 
 class RiverSegmentationModel:
@@ -195,19 +194,26 @@ class RiverSegmentationModel:
         self.KafkaConnector.connect()
 
     def predict(self, X):
-        image_data = X["image"]
-        image_bytes = base64.b64decode(image_data)
+        image_link = X["image_link"]  # Get the MinIO object path
+        
+        try:
+            # Get image data from MinIO using the object path
+            image_bytes = self.MinIOconnector.get_object(image_link)
+            
+            # Decode the image bytes to a numpy array
+            nparr = np.frombuffer(image_bytes, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
-        # Decode the image bytes to a numpy array
-        nparr = np.frombuffer(image_bytes, np.uint8)
-        image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            if image is None:
+                print(f"Error: Could not decode image from MinIO object: {image_link}")
+                return None
 
-        if image is None:
-            print("Error: Could not decode image from bytes")
+            # Convert BGR to RGB
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            
+        except Exception as e:
+            print(f"Error retrieving image from MinIO: {str(e)}")
             return None
-
-        # Convert BGR to RGB
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
         original_image = cv2.resize(image, self.input_size)
         # Apply transformations
