@@ -1,4 +1,4 @@
-from river_segmentation.models import RiverSegmentationModel
+from models_package.models import RiverSegmentationModel
 import signal
 import sys
 import os

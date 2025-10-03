@@ -145,7 +145,7 @@ async def list_objects():
     try:
         # You'll need to add this method to your MinIOConnector class
         # For now, let's try using the s3_client directly
-        response = minioClient.s3_client.list_objects_v2(Bucket=minioClient.target)
+        response = minioClient.s3_client.list_objects_v2(Bucket=minioClient.target) # type: ignore
         objects = []
         if "Contents" in response:
             for obj in response["Contents"]:
@@ -257,6 +257,7 @@ async def get_image(object_name: str, timeout: int = 30):
                     f"Successfully fetched image: {object_name}, size: {len(data)} bytes"
                 )
                 media_type = get_media_type(object_name)
+                # return a StreamingResponse which is a stream of bytes for display in browser
                 return StreamingResponse(io.BytesIO(data), media_type=media_type)
             else:
                 print(f"Object {object_name} exists but is empty")
@@ -318,3 +319,6 @@ async def upload_image(file: UploadFile = File(...), request: Request = None):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to upload image: {str(e)}")
+
+
+    

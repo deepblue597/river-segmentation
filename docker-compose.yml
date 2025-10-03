@@ -9,6 +9,7 @@ services:
         chown -R 472:472 /data/grafana &&
         mkdir -p /data/kafka/controller1 /data/kafka/controller2 /data/kafka/controller3 &&
         mkdir -p /data/kafka/broker1 /data/kafka/broker2 /data/kafka/broker3 &&
+        chown -R 1000:1000 /data/kafka &&
         chmod -R 755 /data/kafka &&
         echo 'Permissions set successfully'
       "
@@ -59,6 +60,7 @@ services:
   controller-riverseg-1:
     image: apache/kafka:latest
     container_name: controller-riverseg-1
+    user: "1000:1000"
     depends_on:
       - init-permissions
     env_file:
@@ -69,6 +71,7 @@ services:
   controller-riverseg-2:
     image: apache/kafka:latest
     container_name: controller-riverseg-2
+    user: "1000:1000"
     depends_on:
       - init-permissions
     env_file:
@@ -79,6 +82,7 @@ services:
   controller-riverseg-3:
     image: apache/kafka:latest
     container_name: controller-riverseg-3
+    user: "1000:1000"
     depends_on:
       - init-permissions
     env_file:
@@ -137,9 +141,9 @@ services:
       - ./data/kafka/broker3:/var/lib/kafka/data
       - ./config/kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf:ro
 
-  kafka-ui-multi:
+  kafka-ui-multi1:
     image: provectuslabs/kafka-ui:latest
-    container_name: kafka-ui-multi
+    container_name: kafka-ui-multi1
     env_file:
       - environment_variables/kafka-ui.env
     ports:
@@ -160,7 +164,7 @@ services:
       - broker-riverseg-1
       - broker-riverseg-2
       - broker-riverseg-3
-      - kafka-ui-multi
+      - kafka-ui-multi1
     restart: unless-stopped
 
   river-backend:
@@ -169,7 +173,7 @@ services:
     env_file:
       - environment_variables/backend.env
     ports:
-      - "8000:8000"
+      - "8009:8000"
     depends_on:
       - minio
       - broker-riverseg-1
